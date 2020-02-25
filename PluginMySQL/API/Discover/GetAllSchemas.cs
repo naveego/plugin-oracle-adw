@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Naveego.Sdk.Plugins;
 using PluginMySQL.API.Factory;
 using PluginMySQL.Helper;
@@ -53,20 +54,17 @@ ORDER BY t.TABLE_NAME";
                     // return previous schema
                     if (schema != null)
                     {
-                        // add sample and count
-                        var records = Read.Read.ReadRecords(connFactory, schema).Take(sampleSize);
-                        schema.Sample.AddRange(await records.ToListAsync());
-                        schema.Count = await GetCountOfRecords(connFactory, schema);
-                        
-                        yield return schema;
+                        // get sample and count
+                        yield return await AddSampleAndCount(connFactory, schema, sampleSize);
                     }
 
                     // start new schema
                     currentSchemaId = schemaId;
+                    var parts = DecomposeSafeName(currentSchemaId);
                     schema = new Schema
                     {
                         Id = currentSchemaId,
-                        Name = schemaId,
+                        Name = $"{parts.Schema.Trim('`')}.{parts.Table.Trim('`')}",
                         Properties = { },
                         DataFlowDirection = Schema.Types.DataFlowDirection.Read
                     };
@@ -76,7 +74,7 @@ ORDER BY t.TABLE_NAME";
                 var property = new Property
                 {
                     Id = $"`{reader.GetValueById(ColumnName)}`",
-                    Name = reader.GetValueById(TableSchema).ToString(),
+                    Name = reader.GetValueById(ColumnName).ToString(),
                     IsKey = reader.GetValueById(ColumnKey).ToString() == "PRI",
                     IsNullable = reader.GetValueById(IsNullable).ToString() == "YES",
                     Type = GetType(reader.GetValueById(DataType).ToString()),
@@ -87,6 +85,22 @@ ORDER BY t.TABLE_NAME";
             }
 
             await conn.CloseAsync();
+
+            if (schema != null)
+            {
+                // get sample and count
+                yield return await AddSampleAndCount(connFactory, schema, sampleSize);
+            }
+        }
+
+        private static async Task<Schema> AddSampleAndCount(IConnectionFactory connFactory, Schema schema, int sampleSize)
+        {
+            // add sample and count
+            var records = Read.Read.ReadRecords(connFactory, schema).Take(sampleSize);
+            schema.Sample.AddRange(await records.ToListAsync());
+            schema.Count = await GetCountOfRecords(connFactory, schema);
+
+            return schema;
         }
 
         private static PropertyType GetType(string dataType)

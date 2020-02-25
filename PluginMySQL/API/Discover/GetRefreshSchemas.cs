@@ -13,7 +13,6 @@ namespace PluginMySQL.API.Discover
         public static async IAsyncEnumerable<Schema> GetRefreshSchemas(IConnectionFactory connFactory,
             RepeatedField<Schema> refreshSchemas, int sampleSize = 5)
         {
-            
             var conn = connFactory.GetConnection();
             await conn.OpenAsync();
 
@@ -70,11 +69,7 @@ namespace PluginMySQL.API.Discover
                 schema.Properties.AddRange(properties);
 
                 // get sample and count
-                var records = Read.Read.ReadRecords(connFactory, schema).Take(sampleSize);
-                schema.Sample.AddRange(await records.ToListAsync());
-                schema.Count = await GetCountOfRecords(connFactory, schema);
-                
-                yield return schema;
+                yield return await AddSampleAndCount(connFactory, schema, sampleSize);
             }
             
             await conn.CloseAsync();

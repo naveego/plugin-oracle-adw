@@ -13,7 +13,8 @@ namespace PluginMySQLTest.Helper
             // setup
             var settings = new Settings
             {
-                Server = "123.456.789.0",
+                HostName = "123.456.789.0",
+                Port = "3306",
                 Database = "testdb",
                 Username = "username",
                 Password = "password"
@@ -26,12 +27,12 @@ namespace PluginMySQLTest.Helper
         }
 
         [Fact]
-        public void ValidateNoServerTest()
+        public void ValidateNoHostNameTest()
         {
             // setup
             var settings = new Settings
             {
-                Server = null,
+                HostName = null,
                 Database = "testdb",
                 Username = "username",
                 Password = "password"
@@ -41,7 +42,7 @@ namespace PluginMySQLTest.Helper
             Exception e = Assert.Throws<Exception>(() => settings.Validate());
 
             // assert
-            Assert.Contains("The Server property must be set", e.Message);
+            Assert.Contains("The HostName property must be set", e.Message);
         }
         
         [Fact]
@@ -50,7 +51,7 @@ namespace PluginMySQLTest.Helper
             // setup
             var settings = new Settings
             {
-                Server = "123.456.789.0",
+                HostName = "123.456.789.0",
                 Database = null,
                 Username = "username",
                 Password = "password"
@@ -69,7 +70,7 @@ namespace PluginMySQLTest.Helper
             // setup
             var settings = new Settings
             {
-                Server = "123.456.789.0",
+                HostName = "123.456.789.0",
                 Database = "testdb",
                 Username = null,
                 Password = "password"
@@ -88,7 +89,7 @@ namespace PluginMySQLTest.Helper
             // setup
             var settings = new Settings
             {
-                Server = "123.456.789.0",
+                HostName = "123.456.789.0",
                 Database = "testdb",
                 Username = "username",
                 Password = null
@@ -99,6 +100,28 @@ namespace PluginMySQLTest.Helper
 
             // assert
             Assert.Contains("The Password property must be set", e.Message);
+        }
+        
+        [Fact]
+        public void GetConnectionStringTest()
+        {
+            // setup
+            var settings = new Settings
+            {
+                HostName = "123.456.789.0",
+                Port = "3306",
+                Database = "testdb",
+                Username = "username",
+                Password = "password"
+            };
+
+            // act
+            var connString = settings.GetConnectionString();
+            var connDbString = settings.GetConnectionString("otherdb");
+
+            // assert
+            Assert.Equal("Server=123.456.789.0; Port=3306; Database=testdb; User=username; Password=password;", connString);
+            Assert.Equal("Server=123.456.789.0; Port=3306; Database=otherdb; User=username; Password=password;", connDbString);
         }
     }
 }

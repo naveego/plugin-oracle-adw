@@ -29,7 +29,6 @@ ORDER BY t.TABLE_NAME";
         
         public static async Task<Schema> GetRefreshSchemaForTable(IConnectionFactory connFactory, Schema schema, int sampleSize = 5)
         {
-            var outSchema = new Schema();
             var decomposed = DecomposeSafeName(schema.Id);
             var conn = string.IsNullOrWhiteSpace(decomposed.Database) ? connFactory.GetConnection() : connFactory.GetConnection(decomposed.Database);
 
@@ -59,14 +58,10 @@ ORDER BY t.TABLE_NAME";
             schema.Properties.Clear();
             schema.Properties.AddRange(refreshProperties);
             
-            // get sample and count
-            var records = Read.Read.ReadRecords(connFactory, schema).Take(sampleSize);
-            schema.Sample.AddRange(await records.ToListAsync());
-            schema.Count = await GetCountOfRecords(connFactory, schema);
-            
             await conn.CloseAsync();
 
-            return outSchema;
+            // get sample and count
+            return await AddSampleAndCount(connFactory, schema, sampleSize);
         }
 
         private static DecomposeResponse DecomposeSafeName(string schemaId)

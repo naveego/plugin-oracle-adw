@@ -9,6 +9,7 @@ using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
 using PluginMySQL.API.Discover;
 using PluginMySQL.API.Factory;
+using PluginMySQL.API.Read;
 using PluginMySQL.Helper;
 
 namespace PluginMySQL.Plugin
@@ -150,7 +151,7 @@ namespace PluginMySQL.Plugin
                 // get all schemas
                 try
                 {
-                    var schemas = Discover.GetAllSchemas(_connectionFactory);
+                    var schemas = Discover.GetAllSchemas(_connectionFactory, sampleSize);
 
                     discoverSchemasResponse.Schemas.AddRange(await schemas.ToListAsync());
 
@@ -171,7 +172,7 @@ namespace PluginMySQL.Plugin
 
                 Logger.Info($"Refresh schemas attempted: {refreshSchemas.Count}");
 
-                var schemas = Discover.GetRefreshSchemas(_connectionFactory, refreshSchemas);
+                var schemas = Discover.GetRefreshSchemas(_connectionFactory, refreshSchemas, sampleSize);
 
                 discoverSchemasResponse.Schemas.AddRange(await schemas.ToListAsync());
 
@@ -196,8 +197,30 @@ namespace PluginMySQL.Plugin
         public override async Task ReadStream(ReadRequest request, IServerStreamWriter<Record> responseStream,
             ServerCallContext context)
         {
-            Logger.SetLogPrefix(request.DataVersions.JobId);
-            //Read.GetAllRecords()
+            var schema = request.Schema;
+            var limit = request.Limit;
+            var limitFlag = request.Limit != 0;
+            var jobId = request.JobId;
+            var recordsCount = 0;
+            
+            Logger.SetLogPrefix(jobId);
+            
+            var records = Read.ReadRecords(_connectionFactory, schema);
+
+            await foreach (var record in records)
+            {
+                // stop publishing if the limit flag is enabled and the limit has been reached or the server is disconnected
+                if (limitFlag && recordsCount == limit || !_server.Connected)
+                {
+                    break;
+                }
+                
+                // publish record
+                await responseStream.WriteAsync(record);
+                recordsCount++;
+            }
+            
+            Logger.Info($"Published {recordsCount} records");
         }
 
         /// <summary>

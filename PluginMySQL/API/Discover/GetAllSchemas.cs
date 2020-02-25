@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Naveego.Sdk.Plugins;
 using PluginMySQL.API.Factory;
 using PluginMySQL.Helper;
@@ -34,7 +35,7 @@ WHERE t.TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema'
 
 ORDER BY t.TABLE_NAME";
 
-        public static async IAsyncEnumerable<Schema> GetAllSchemas(IConnectionFactory connFactory)
+        public static async IAsyncEnumerable<Schema> GetAllSchemas(IConnectionFactory connFactory, int sampleSize = 5)
         {
             var conn = connFactory.GetConnection();
             await conn.OpenAsync();
@@ -52,7 +53,11 @@ ORDER BY t.TABLE_NAME";
                     // return previous schema
                     if (schema != null)
                     {
+                        // add sample and count
+                        var records = Read.Read.ReadRecords(connFactory, schema).Take(sampleSize);
+                        schema.Sample.AddRange(await records.ToListAsync());
                         schema.Count = await GetCountOfRecords(connFactory, schema);
+                        
                         yield return schema;
                     }
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Naveego.Sdk.Plugins;
 using PluginMySQL.API.Factory;
@@ -26,7 +27,7 @@ AND t.TABLE_NAME = '{1}'
 
 ORDER BY t.TABLE_NAME";
         
-        public static async Task<Schema> GetSchemaForTable(IConnectionFactory connFactory, Schema schema)
+        public static async Task<Schema> GetRefreshSchemaForTable(IConnectionFactory connFactory, Schema schema, int sampleSize = 5)
         {
             var outSchema = new Schema();
             var decomposed = DecomposeSafeName(schema.Id);
@@ -54,8 +55,13 @@ ORDER BY t.TABLE_NAME";
                 refreshProperties.Add(property);
             }
             
+            // add properties
             schema.Properties.Clear();
             schema.Properties.AddRange(refreshProperties);
+            
+            // get sample and count
+            var records = Read.Read.ReadRecords(connFactory, schema).Take(sampleSize);
+            schema.Sample.AddRange(await records.ToListAsync());
             schema.Count = await GetCountOfRecords(connFactory, schema);
             
             await conn.CloseAsync();

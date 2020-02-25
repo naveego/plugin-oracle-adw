@@ -14,7 +14,14 @@ namespace PluginMySQL.API.Read
             var conn = connFactory.GetConnection();
             await conn.OpenAsync();
 
-            var cmd = connFactory.GetCommand("", conn);
+            var query = schema.Query;
+
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                query = $"SELECT * FROM {schema.Id}";
+            }
+            
+            var cmd = connFactory.GetCommand(query, conn);
             IReader reader;
 
             try

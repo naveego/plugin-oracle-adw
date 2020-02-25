@@ -16,24 +16,24 @@ namespace PluginMySQL.Helper
         /// <exception cref="Exception"></exception>
         public void Validate()
         {
-            if (String.IsNullOrEmpty(Username))
+            if (String.IsNullOrEmpty(Server))
             {
-                throw new Exception("the Server property must be set");
+                throw new Exception("The Server property must be set");
             }
             
             if (String.IsNullOrEmpty(Database))
             {
-                throw new Exception("the Database property must be set");
+                throw new Exception("The Database property must be set");
             }
 
             if (String.IsNullOrEmpty(Username))
             {
-                throw new Exception("the Username property must be set");
+                throw new Exception("The Username property must be set");
             }
             
             if (String.IsNullOrEmpty(Password))
             {
-                throw new Exception("the Password property must be set");
+                throw new Exception("The Password property must be set");
             }
         }
 

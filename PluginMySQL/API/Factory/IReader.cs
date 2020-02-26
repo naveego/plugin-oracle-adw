@@ -8,7 +8,7 @@ namespace PluginMySQL.API.Factory
         Task<bool> ReadAsync();
         Task CloseAsync();
         DataTable GetSchemaTable();
-        object GetValueById(string id);
+        object GetValueById(string id, char trimChar = '`');
         bool HasRows();
     }
 }

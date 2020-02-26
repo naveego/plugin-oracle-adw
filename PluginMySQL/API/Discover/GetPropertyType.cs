@@ -26,6 +26,7 @@ namespace PluginMySQL.API.Discover
                     {
                         return PropertyType.Text;
                     }
+
                     return PropertyType.String;
                 default:
                     return PropertyType.String;

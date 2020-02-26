@@ -48,7 +48,8 @@ ORDER BY t.TABLE_NAME";
             var currentSchemaId = "";
             while (await reader.ReadAsync())
             {
-                var schemaId = $"`{reader.GetValueById(TableSchema)}`.`{reader.GetValueById(TableName)}`";
+                var schemaId =
+                    $"{Utility.Utility.GetSafeName(reader.GetValueById(TableSchema).ToString(), '`')}.{Utility.Utility.GetSafeName(reader.GetValueById(TableName).ToString(), '`')}";
                 if (schemaId != currentSchemaId)
                 {
                     // return previous schema
@@ -93,7 +94,8 @@ ORDER BY t.TABLE_NAME";
             }
         }
 
-        private static async Task<Schema> AddSampleAndCount(IConnectionFactory connFactory, Schema schema, int sampleSize)
+        private static async Task<Schema> AddSampleAndCount(IConnectionFactory connFactory, Schema schema,
+            int sampleSize)
         {
             // add sample and count
             var records = Read.Read.ReadRecords(connFactory, schema).Take(sampleSize);

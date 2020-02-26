@@ -48,7 +48,7 @@ namespace PluginMySQL.API.Discover
                         // create property
                         var property = new Property
                         {
-                            Id = $"`{colName}`",
+                            Id = Utility.Utility.GetSafeName(colName, '`'),
                             Name = colName,
                             Description = "",
                             Type = GetPropertyType(row),
@@ -64,7 +64,7 @@ namespace PluginMySQL.API.Discover
                         properties.Add(property);
                     }
                 }
-                
+
                 // add only discovered properties to schema
                 schema.Properties.Clear();
                 schema.Properties.AddRange(properties);
@@ -72,7 +72,7 @@ namespace PluginMySQL.API.Discover
                 // get sample and count
                 yield return await AddSampleAndCount(connFactory, schema, sampleSize);
             }
-            
+
             await conn.CloseAsync();
         }
     }

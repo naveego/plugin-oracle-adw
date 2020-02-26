@@ -12,7 +12,7 @@ namespace PluginMySQL.API.Factory
         {
             _reader = (MySqlDataReader) reader;
         }
-        
+
         public async Task<bool> ReadAsync()
         {
             return await _reader.ReadAsync();
@@ -28,9 +28,9 @@ namespace PluginMySQL.API.Factory
             return _reader.GetSchemaTable();
         }
 
-        public object GetValueById(string id)
+        public object GetValueById(string id, char trimChar = '`')
         {
-            return _reader[id];
+            return _reader[id.Trim(trimChar)];
         }
 
         public bool HasRows()

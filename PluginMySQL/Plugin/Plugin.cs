@@ -98,6 +98,8 @@ namespace PluginMySQL.Plugin
                 };
             }
 
+            _server.Connected = true;
+            
             return new ConnectResponse
             {
                 OauthStateJson = request.OauthStateJson,

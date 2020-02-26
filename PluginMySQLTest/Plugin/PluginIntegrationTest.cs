@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -6,6 +7,7 @@ using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
 using PluginMySQL.Helper;
 using Xunit;
+using Record = Naveego.Sdk.Plugins.Record;
 
 namespace PluginMySQLTest.Plugin
 {
@@ -266,6 +268,202 @@ namespace PluginMySQLTest.Plugin
             Assert.Equal(PropertyType.Integer, property.Type);
             Assert.True(property.IsKey);
             Assert.False(property.IsNullable);
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+        
+        [Fact]
+        public async Task ReadStreamTableSchemaTest()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginMySQL.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var schema = GetTestSchema("`classicmodels`.`customers`", "classicmodels.customers");
+            
+            var connectRequest = GetConnectSettings();
+
+            var schemaRequest = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
+                ToRefresh = {schema}
+            };
+
+            var request = new ReadRequest()
+            {
+                DataVersions = new DataVersions
+                {
+                    JobId = "test"
+                },
+                JobId = "test",
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var schemasResponse = client.DiscoverSchemas(schemaRequest);
+            request.Schema = schemasResponse.Schemas[0];
+            
+            var response = client.ReadStream(request);
+            var responseStream = response.ResponseStream;
+            var records = new List<Record>();
+
+            while (await responseStream.MoveNext())
+            {
+                records.Add(responseStream.Current);
+            }
+
+            // assert
+            Assert.Equal(122, records.Count);
+
+            var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
+            Assert.Equal((long)103, record["`customerNumber`"]);
+            Assert.Equal("Atelier graphique", record["`customerName`"]);
+            Assert.Equal("Schmitt", record["`contactLastName`"]);
+            Assert.Equal("Carine", record["`contactFirstName`"]);
+            Assert.Equal("40.32.2555", record["`phone`"]);
+            Assert.Equal("54, rue Royale", record["`addressLine1`"]);
+            Assert.Equal("", record["`addressLine2`"]);
+            Assert.Equal("Nantes", record["`city`"]);
+            Assert.Equal("", record["`state`"]);
+            Assert.Equal("44000", record["`postalCode`"]);
+            Assert.Equal("France", record["`country`"]);
+            Assert.Equal((long)1370, record["`salesRepEmployeeNumber`"]);
+            Assert.Equal("21000.00", record["`creditLimit`"]);
+            
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+        
+        [Fact]
+        public async Task ReadStreamQuerySchemaTest()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginMySQL.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var schema = GetTestSchema("test", "test", $"SELECT * FROM `classicmodels`.`orders`");
+            
+            var connectRequest = GetConnectSettings();
+
+            var schemaRequest = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
+                ToRefresh = {schema}
+            };
+
+            var request = new ReadRequest()
+            {
+                DataVersions = new DataVersions
+                {
+                    JobId = "test"
+                },
+                JobId = "test",
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var schemasResponse = client.DiscoverSchemas(schemaRequest);
+            request.Schema = schemasResponse.Schemas[0];
+            
+            var response = client.ReadStream(request);
+            var responseStream = response.ResponseStream;
+            var records = new List<Record>();
+
+            while (await responseStream.MoveNext())
+            {
+                records.Add(responseStream.Current);
+            }
+
+            // assert
+            Assert.Equal(326, records.Count);
+
+            var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
+            Assert.Equal((long)10100, record["`orderNumber`"]);
+            Assert.Equal(DateTime.Parse("2003-01-06"), record["`orderDate`"]);
+            Assert.Equal(DateTime.Parse("2003-01-13"), record["`requiredDate`"]);
+            Assert.Equal(DateTime.Parse("2003-01-10"), record["`shippedDate`"]);
+            Assert.Equal("Shipped", record["`status`"]);
+            Assert.Equal("", record["`comments`"]);
+            Assert.Equal((long)363, record["`customerNumber`"]);
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+        
+        [Fact]
+        public async Task ReadStreamLimitTest()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginMySQL.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var schema = GetTestSchema("`classicmodels`.`customers`", "classicmodels.customers");
+            
+            var connectRequest = GetConnectSettings();
+
+            var schemaRequest = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
+                ToRefresh = {schema}
+            };
+
+            var request = new ReadRequest()
+            {
+                DataVersions = new DataVersions
+                {
+                    JobId = "test"
+                },
+                JobId = "test",
+                Limit = 10
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var schemasResponse = client.DiscoverSchemas(schemaRequest);
+            request.Schema = schemasResponse.Schemas[0];
+            
+            var response = client.ReadStream(request);
+            var responseStream = response.ResponseStream;
+            var records = new List<Record>();
+
+            while (await responseStream.MoveNext())
+            {
+                records.Add(responseStream.Current);
+            }
+
+            // assert
+            Assert.Equal(10, records.Count);
 
             // cleanup
             await channel.ShutdownAsync();

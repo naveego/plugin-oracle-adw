@@ -2,9 +2,9 @@ namespace PluginMySQL.API.Utility
 {
     public static partial class Utility
     {
-        public static string GetSafeName(string unsafeName)
+        public static string GetSafeName(string unsafeName, char escapeChar = '`')
         {
-            return $"`{unsafeName}`";
+            return $"{escapeChar}{unsafeName}{escapeChar}";
         }
     }
 }

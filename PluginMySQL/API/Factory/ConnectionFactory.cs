@@ -7,7 +7,7 @@ namespace PluginMySQL.API.Factory
     public class ConnectionFactory : IConnectionFactory
     {
         private Settings _settings;
-        
+
         public void Initialize(Settings settings)
         {
             _settings = settings;

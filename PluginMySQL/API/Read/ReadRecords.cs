@@ -20,7 +20,7 @@ namespace PluginMySQL.API.Read
             {
                 query = $"SELECT * FROM {schema.Id}";
             }
-            
+
             var cmd = connFactory.GetCommand(query, conn);
             IReader reader;
 
@@ -47,10 +47,12 @@ namespace PluginMySQL.API.Read
                             switch (property.Type)
                             {
                                 case PropertyType.String:
-                                    recordMap[property.Id] = reader.GetValueById(property.Id).ToString();
+                                case PropertyType.Text:
+                                case PropertyType.Decimal:
+                                    recordMap[property.Id] = reader.GetValueById(property.Id, '`').ToString();
                                     break;
                                 default:
-                                    recordMap[property.Id] = reader.GetValueById(property.Id);
+                                    recordMap[property.Id] = reader.GetValueById(property.Id, '`');
                                     break;
                             }
                         }
@@ -61,7 +63,7 @@ namespace PluginMySQL.API.Read
                             recordMap[property.Id] = null;
                         }
                     }
-                    
+
                     var record = new Record
                     {
                         Action = Record.Types.Action.Upsert,

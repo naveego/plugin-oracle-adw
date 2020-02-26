@@ -26,24 +26,28 @@ AND t.TABLE_SCHEMA = '{0}'
 AND t.TABLE_NAME = '{1}' 
 
 ORDER BY t.TABLE_NAME";
-        
-        public static async Task<Schema> GetRefreshSchemaForTable(IConnectionFactory connFactory, Schema schema, int sampleSize = 5)
+
+        public static async Task<Schema> GetRefreshSchemaForTable(IConnectionFactory connFactory, Schema schema,
+            int sampleSize = 5)
         {
             var decomposed = DecomposeSafeName(schema.Id).TrimEscape();
-            var conn = string.IsNullOrWhiteSpace(decomposed.Database) ? connFactory.GetConnection() : connFactory.GetConnection(decomposed.Database);
+            var conn = string.IsNullOrWhiteSpace(decomposed.Database)
+                ? connFactory.GetConnection()
+                : connFactory.GetConnection(decomposed.Database);
 
             await conn.OpenAsync();
 
-            var cmd = connFactory.GetCommand(string.Format(GetTableAndColumnsQuery, decomposed.Schema, decomposed.Table), conn);
+            var cmd = connFactory.GetCommand(
+                string.Format(GetTableAndColumnsQuery, decomposed.Schema, decomposed.Table), conn);
             var reader = await cmd.ExecuteReaderAsync();
             var refreshProperties = new List<Property>();
-            
+
             while (await reader.ReadAsync())
             {
                 // add column to refreshProperties
                 var property = new Property
                 {
-                    Id = $"`{reader.GetValueById(ColumnName)}`",
+                    Id = Utility.Utility.GetSafeName(reader.GetValueById(ColumnName).ToString(), '`'),
                     Name = reader.GetValueById(ColumnName).ToString(),
                     IsKey = reader.GetValueById(ColumnKey).ToString() == "PRI",
                     IsNullable = reader.GetValueById(IsNullable).ToString() == "YES",
@@ -53,11 +57,11 @@ ORDER BY t.TABLE_NAME";
                 };
                 refreshProperties.Add(property);
             }
-            
+
             // add properties
             schema.Properties.Clear();
             schema.Properties.AddRange(refreshProperties);
-            
+
             await conn.CloseAsync();
 
             // get sample and count
@@ -94,8 +98,8 @@ ORDER BY t.TABLE_NAME";
                     return response;
             }
         }
-        
-        private static DecomposeResponse TrimEscape(this DecomposeResponse response, char escape='`')
+
+        private static DecomposeResponse TrimEscape(this DecomposeResponse response, char escape = '`')
         {
             response.Database = response.Database.Trim(escape);
             response.Schema = response.Schema.Trim(escape);

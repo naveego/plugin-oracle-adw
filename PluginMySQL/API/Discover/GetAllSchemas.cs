@@ -60,11 +60,11 @@ ORDER BY t.TABLE_NAME";
 
                     // start new schema
                     currentSchemaId = schemaId;
-                    var parts = DecomposeSafeName(currentSchemaId);
+                    var parts = DecomposeSafeName(currentSchemaId).TrimEscape();
                     schema = new Schema
                     {
                         Id = currentSchemaId,
-                        Name = $"{parts.Schema.Trim('`')}.{parts.Table.Trim('`')}",
+                        Name = $"{parts.Schema}.{parts.Table}",
                         Properties = { },
                         DataFlowDirection = Schema.Types.DataFlowDirection.Read
                     };

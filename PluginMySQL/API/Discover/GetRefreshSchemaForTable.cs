@@ -29,7 +29,7 @@ ORDER BY t.TABLE_NAME";
         
         public static async Task<Schema> GetRefreshSchemaForTable(IConnectionFactory connFactory, Schema schema, int sampleSize = 5)
         {
-            var decomposed = DecomposeSafeName(schema.Id);
+            var decomposed = DecomposeSafeName(schema.Id).TrimEscape();
             var conn = string.IsNullOrWhiteSpace(decomposed.Database) ? connFactory.GetConnection() : connFactory.GetConnection(decomposed.Database);
 
             await conn.OpenAsync();
@@ -44,7 +44,7 @@ ORDER BY t.TABLE_NAME";
                 var property = new Property
                 {
                     Id = $"`{reader.GetValueById(ColumnName)}`",
-                    Name = reader.GetValueById(TableSchema).ToString(),
+                    Name = reader.GetValueById(ColumnName).ToString(),
                     IsKey = reader.GetValueById(ColumnKey).ToString() == "PRI",
                     IsNullable = reader.GetValueById(IsNullable).ToString() == "YES",
                     Type = GetType(reader.GetValueById(DataType).ToString()),
@@ -93,6 +93,15 @@ ORDER BY t.TABLE_NAME";
                 default:
                     return response;
             }
+        }
+        
+        private static DecomposeResponse TrimEscape(this DecomposeResponse response, char escape='`')
+        {
+            response.Database = response.Database.Trim(escape);
+            response.Schema = response.Schema.Trim(escape);
+            response.Table = response.Table.Trim(escape);
+
+            return response;
         }
     }
 

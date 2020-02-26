@@ -15,13 +15,13 @@ namespace PluginMySQLTest.Plugin
         {
             return new Settings
             {
-                HostName = "150.136.152.223",
+                Hostname = "150.136.152.223",
                 Database = "classicmodels",
                 Username = "root",
                 Password = "dtC5&CFiQ$9j"
             };
         }
-        
+
         private ConnectRequest GetConnectSettings()
         {
             var settings = GetSettings();
@@ -34,16 +34,16 @@ namespace PluginMySQLTest.Plugin
             };
         }
 
-        private Schema GetTestSchema(string query)
+        private Schema GetTestSchema(string id = "test", string name = "test", string query = "")
         {
             return new Schema
             {
-                Id = "test",
-                Name = "test",
+                Id = id,
+                Name = name,
                 Query = query
             };
         }
-        
+
         [Fact]
         public async Task ConnectSessionTest()
         {
@@ -113,7 +113,7 @@ namespace PluginMySQLTest.Plugin
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-        
+
         [Fact]
         public async Task DiscoverSchemasAllTest()
         {
@@ -154,6 +154,112 @@ namespace PluginMySQLTest.Plugin
             Assert.Equal(13, schema.Properties.Count);
 
             var property = schema.Properties[7];
+            Assert.Equal("`customerNumber`", property.Id);
+            Assert.Equal("customerNumber", property.Name);
+            Assert.Equal("", property.Description);
+            Assert.Equal(PropertyType.Integer, property.Type);
+            Assert.True(property.IsKey);
+            Assert.False(property.IsNullable);
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+
+        [Fact]
+        public async Task DiscoverSchemasRefreshTableTest()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginMySQL.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var connectRequest = GetConnectSettings();
+
+            var request = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
+                SampleSize = 10,
+                ToRefresh = {GetTestSchema("`classicmodels`.`customers`", "classicmodels.customers")}
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var response = client.DiscoverSchemas(request);
+
+            // assert
+            Assert.IsType<DiscoverSchemasResponse>(response);
+            Assert.Single(response.Schemas);
+
+            var schema = response.Schemas[0];
+            Assert.Equal($"`classicmodels`.`customers`", schema.Id);
+            Assert.Equal("classicmodels.customers", schema.Name);
+            Assert.Equal($"", schema.Query);
+            Assert.Equal(10, schema.Sample.Count);
+            Assert.Equal(13, schema.Properties.Count);
+
+            var property = schema.Properties[0];
+            Assert.Equal("`customerNumber`", property.Id);
+            Assert.Equal("customerNumber", property.Name);
+            Assert.Equal("", property.Description);
+            Assert.Equal(PropertyType.Integer, property.Type);
+            Assert.True(property.IsKey);
+            Assert.False(property.IsNullable);
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+
+        [Fact]
+        public async Task DiscoverSchemasRefreshQueryTest()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginMySQL.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var connectRequest = GetConnectSettings();
+
+            var request = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
+                SampleSize = 10,
+                ToRefresh = {GetTestSchema("test", "test", $"SELECT * FROM `classicmodels`.`customers`")}
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var response = client.DiscoverSchemas(request);
+
+            // assert
+            Assert.IsType<DiscoverSchemasResponse>(response);
+            Assert.Single(response.Schemas);
+
+            var schema = response.Schemas[0];
+            Assert.Equal($"test", schema.Id);
+            Assert.Equal("test", schema.Name);
+            Assert.Equal($"SELECT * FROM `classicmodels`.`customers`", schema.Query);
+            Assert.Equal(10, schema.Sample.Count);
+            Assert.Equal(13, schema.Properties.Count);
+
+            var property = schema.Properties[0];
             Assert.Equal("`customerNumber`", property.Id);
             Assert.Equal("customerNumber", property.Name);
             Assert.Equal("", property.Description);

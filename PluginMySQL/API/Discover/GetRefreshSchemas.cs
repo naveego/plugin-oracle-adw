@@ -21,6 +21,7 @@ namespace PluginMySQL.API.Discover
                 if (string.IsNullOrWhiteSpace(schema.Query))
                 {
                     yield return await GetRefreshSchemaForTable(connFactory, schema, sampleSize);
+                    continue;
                 }
 
                 var cmd = connFactory.GetCommand(schema.Query, conn);
@@ -47,7 +48,7 @@ namespace PluginMySQL.API.Discover
                         // create property
                         var property = new Property
                         {
-                            Id = colName,
+                            Id = $"`{colName}`",
                             Name = colName,
                             Description = "",
                             Type = GetPropertyType(row),

@@ -30,7 +30,8 @@
   "configSchema": {
     "ui": {
       "ui:order": [
-        "Server",
+        "Hostname",
+        "Port",
         "Database",
         "Username",
         "Password"
@@ -42,10 +43,15 @@
     "schema": {
       "type": "object",
       "properties": {
-        "Server" : {
+        "Hostname" : {
           "type": "string",
-          "title": "Server",
+          "title": "Hostname",
           "description": "The hostname of the MySQL Server"
+        },
+        "Port": {
+          "type": "string",
+          "title": "Port",
+          "description": "The port of the MySQL Server"
         },
         "Username": {
           "type": "string",
@@ -64,7 +70,7 @@
         }
       },
       "required": [
-        "Server",
+        "Hostname",
         "Username",
         "Password",
         "Database"

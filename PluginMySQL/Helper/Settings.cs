@@ -5,7 +5,7 @@ namespace PluginMySQL.Helper
 {
     public class Settings
     {
-        public string HostName { get; set; }
+        public string Hostname { get; set; }
         public string Port { get; set; }
         public string Username { get; set; }
         public string Password { get; set; }
@@ -17,9 +17,9 @@ namespace PluginMySQL.Helper
         /// <exception cref="Exception"></exception>
         public void Validate()
         {
-            if (String.IsNullOrEmpty(HostName))
+            if (String.IsNullOrEmpty(Hostname))
             {
-                throw new Exception("The HostName property must be set");
+                throw new Exception("The Hostname property must be set");
             }
             
             if (String.IsNullOrEmpty(Database))
@@ -44,7 +44,7 @@ namespace PluginMySQL.Helper
         /// <returns></returns>
         public string GetConnectionString()
         {
-            return $"Server={HostName}; Port={Port}; Database={Database}; User={Username}; Password={Password};";
+            return $"Server={Hostname}; Port={Port}; Database={Database}; User={Username}; Password={Password};";
         }
         
         /// <summary>
@@ -53,7 +53,7 @@ namespace PluginMySQL.Helper
         /// <returns></returns>
         public string GetConnectionString(string database)
         {
-            return $"Server={HostName}; Port={Port}; Database={database}; User={Username}; Password={Password};";
+            return $"Server={Hostname}; Port={Port}; Database={database}; User={Username}; Password={Password};";
         }
     }
 }

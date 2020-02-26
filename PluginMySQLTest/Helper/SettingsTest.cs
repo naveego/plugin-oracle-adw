@@ -13,7 +13,7 @@ namespace PluginMySQLTest.Helper
             // setup
             var settings = new Settings
             {
-                HostName = "123.456.789.0",
+                Hostname = "123.456.789.0",
                 Port = "3306",
                 Database = "testdb",
                 Username = "username",
@@ -32,7 +32,7 @@ namespace PluginMySQLTest.Helper
             // setup
             var settings = new Settings
             {
-                HostName = null,
+                Hostname = null,
                 Database = "testdb",
                 Username = "username",
                 Password = "password"
@@ -42,7 +42,7 @@ namespace PluginMySQLTest.Helper
             Exception e = Assert.Throws<Exception>(() => settings.Validate());
 
             // assert
-            Assert.Contains("The HostName property must be set", e.Message);
+            Assert.Contains("The Hostname property must be set", e.Message);
         }
         
         [Fact]
@@ -51,7 +51,7 @@ namespace PluginMySQLTest.Helper
             // setup
             var settings = new Settings
             {
-                HostName = "123.456.789.0",
+                Hostname = "123.456.789.0",
                 Database = null,
                 Username = "username",
                 Password = "password"
@@ -70,7 +70,7 @@ namespace PluginMySQLTest.Helper
             // setup
             var settings = new Settings
             {
-                HostName = "123.456.789.0",
+                Hostname = "123.456.789.0",
                 Database = "testdb",
                 Username = null,
                 Password = "password"
@@ -89,7 +89,7 @@ namespace PluginMySQLTest.Helper
             // setup
             var settings = new Settings
             {
-                HostName = "123.456.789.0",
+                Hostname = "123.456.789.0",
                 Database = "testdb",
                 Username = "username",
                 Password = null
@@ -108,7 +108,7 @@ namespace PluginMySQLTest.Helper
             // setup
             var settings = new Settings
             {
-                HostName = "123.456.789.0",
+                Hostname = "123.456.789.0",
                 Port = "3306",
                 Database = "testdb",
                 Username = "username",

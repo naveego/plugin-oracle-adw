@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.Core;
-using MySql.Data.MySqlClient;
+using Oracle.ManagedDataAccess.Client;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
 using PluginOracleADW.API.Discover;

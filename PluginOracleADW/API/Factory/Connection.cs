@@ -1,22 +1,22 @@
 using System.Data;
 using System.Threading.Tasks;
-using MySql.Data.MySqlClient;
+using Oracle.ManagedDataAccess.Client;
 using PluginOracleADW.Helper;
 
 namespace PluginOracleADW.API.Factory
 {
     public class Connection : IConnection
     {
-        private readonly MySqlConnection _conn;
+        private readonly OracleConnection _conn;
 
         public Connection(Settings settings)
         {
-            _conn = new MySqlConnection(settings.GetConnectionString());
+            _conn = new OracleConnection(settings.GetConnectionString());
         }
 
         public Connection(Settings settings, string database)
         {
-            _conn = new MySqlConnection(settings.GetConnectionString(database));
+            _conn = new OracleConnection(settings.GetConnectionString(database));
         }
 
         public async Task OpenAsync()
@@ -29,9 +29,9 @@ namespace PluginOracleADW.API.Factory
             await _conn.CloseAsync();
         }
 
-        public async Task<bool> PingAsync()
+        public Task<bool> PingAsync()
         {
-            return await _conn.PingAsync();
+            return Task.FromResult(true);
         }
 
         public IDbConnection GetConnection()

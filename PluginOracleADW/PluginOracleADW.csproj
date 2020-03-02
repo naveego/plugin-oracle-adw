@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -6,16 +6,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="MySqlConnector" Version="0.61.0" />
       <PackageReference Include="Naveego.Sdk" Version="1.1.0" />
       <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+      <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="2.19.60" />
       <PackageReference Include="System.Linq.Async" Version="4.0.0" />
     </ItemGroup>
 
     <ItemGroup>
       <Folder Include="API\Replication" />
       <Folder Include="API\Write" />
-      <Folder Include="DataContracts" />
     </ItemGroup>
 
     <ItemGroup>

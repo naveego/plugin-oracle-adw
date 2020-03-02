@@ -1,16 +1,16 @@
 using System.Data;
 using System.Threading.Tasks;
-using MySql.Data.MySqlClient;
+using Oracle.ManagedDataAccess.Client;
 
 namespace PluginOracleADW.API.Factory
 {
     public class Reader : IReader
     {
-        private readonly MySqlDataReader _reader;
+        private readonly OracleDataReader _reader;
 
         public Reader(IDataReader reader)
         {
-            _reader = (MySqlDataReader) reader;
+            _reader = (OracleDataReader) reader;
         }
 
         public async Task<bool> ReadAsync()

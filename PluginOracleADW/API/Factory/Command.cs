@@ -1,30 +1,30 @@
 using System.Threading.Tasks;
-using MySql.Data.MySqlClient;
+using Oracle.ManagedDataAccess.Client;
 
 namespace PluginOracleADW.API.Factory
 {
     public class Command : ICommand
     {
-        private readonly MySqlCommand _cmd;
+        private readonly OracleCommand _cmd;
 
         public Command()
         {
-            _cmd = new MySqlCommand();
+            _cmd = new OracleCommand();
         }
 
         public Command(string commandText)
         {
-            _cmd = new MySqlCommand(commandText);
+            _cmd = new OracleCommand(commandText);
         }
 
         public Command(string commandText, IConnection conn)
         {
-            _cmd = new MySqlCommand(commandText, (MySqlConnection) conn.GetConnection());
+            _cmd = new OracleCommand(commandText, (OracleConnection) conn.GetConnection());
         }
 
         public void SetConnection(IConnection conn)
         {
-            _cmd.Connection = (MySqlConnection) conn.GetConnection();
+            _cmd.Connection = (OracleConnection) conn.GetConnection();
         }
 
         public void SetCommandText(string commandText)
@@ -34,7 +34,7 @@ namespace PluginOracleADW.API.Factory
 
         public void AddParameter(string name, object value)
         {
-            _cmd.Parameters.AddWithValue(name, value);
+            _cmd.Parameters.Add(name, value);
         }
 
         public async Task<IReader> ExecuteReaderAsync()

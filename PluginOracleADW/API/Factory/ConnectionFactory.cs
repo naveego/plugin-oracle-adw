@@ -1,5 +1,4 @@
 using System.Data;
-using MySql.Data.MySqlClient;
 using PluginOracleADW.Helper;
 
 namespace PluginOracleADW.API.Factory

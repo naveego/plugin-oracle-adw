@@ -7,20 +7,19 @@ namespace PluginOracleADW.API.Factory
 {
     public class Connection : IConnection
     {
+        private static bool _settingsApplied = false;
         private readonly OracleConnection _conn;
-        private readonly Settings _settings;
 
         public Connection(Settings settings)
         {
-            //OracleConfiguration.SqlNetWalletOverride = true;
-            OracleConfiguration.TnsAdmin = settings.WalletPath;
-            OracleConfiguration.WalletLocation = settings.WalletPath;
-            OracleConfiguration.TraceFileLocation = "/tmp/traces";
-            OracleConfiguration.TraceLevel = 7;
-            OracleConfiguration.TraceOption = 1;
-            _conn = new OracleConnection(settings.GetConnectionString());
+            if (_settingsApplied == false)
+            {
+                OracleConfiguration.TnsAdmin = settings.WalletPath;
+                OracleConfiguration.WalletLocation = settings.WalletPath;
+                _settingsApplied = true;
+            }
 
-            _settings = settings;
+            _conn = new OracleConnection(settings.GetConnectionString());
         }
 
         public async Task OpenAsync()

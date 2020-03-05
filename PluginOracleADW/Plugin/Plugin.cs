@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using PluginOracleADW.API.Discover;
 using PluginOracleADW.API.Factory;
 using PluginOracleADW.API.Read;
@@ -16,6 +19,7 @@ namespace PluginOracleADW.Plugin
         private readonly ServerStatus _server;
         private TaskCompletionSource<bool> _tcs;
         private IConnectionFactory _connectionFactory;
+        private ConfigureReplicationFormData _replicationConfig;
 
         public Plugin(IConnectionFactory connectionFactory = null)
         {
@@ -23,7 +27,7 @@ namespace PluginOracleADW.Plugin
             _server = new ServerStatus
             {
                 Connected = false,
-                WriteConfigured = false
+                WriteConfigured = false,
             };
         }
 
@@ -232,7 +236,7 @@ namespace PluginOracleADW.Plugin
         public override Task<ConfigureReplicationResponse> ConfigureReplication(ConfigureReplicationRequest request,
             ServerCallContext context)
         {
-            // Logger.Info("Configuring write...");
+            //Logger.Info("Configuring write...");
             //
             // var schemaJson = Replication.GetSchemaJson();
             // var uiJson = Replication.GetUIJson();
@@ -288,29 +292,54 @@ namespace PluginOracleADW.Plugin
         public override async Task<PrepareWriteResponse> PrepareWrite(PrepareWriteRequest request, ServerCallContext context)
         {
             // Logger.SetLogPrefix(request.DataVersions.JobId);
-            // Logger.Info("Preparing write...");
-            // _server.WriteConfigured = false;
-            //
-            // _server.WriteSettings = new WriteSettings
-            // {
-            //     CommitSLA = request.CommitSlaSeconds,
-            //     Schema = request.Schema,
-            //     Replication = request.Replication,
-            //     DataVersions = request.DataVersions,
-            // };
-            //
-            // if (_server.WriteSettings.IsReplication())
-            // {
-            //     // reconcile job
-            //     Logger.Info($"Starting to reconcile Replication Job {request.DataVersions.JobId}");
-            //     await Replication.ReconcileReplicationJob(_connectionFactory, request);
-            //     Logger.Info($"Finished reconciling Replication Job {request.DataVersions.JobId}");
-            // }
-            //
-            // _server.WriteConfigured = true;
-            //
-            // Logger.Debug(JsonConvert.SerializeObject(_server.WriteSettings, Formatting.Indented));
-            // Logger.Info("Write prepared.");
+            Logger.Info("Preparing write...");
+          
+            _server.WriteSettings = new WriteSettings
+            {
+                CommitSLA = request.CommitSlaSeconds,
+                Schema = request.Schema,
+                Replication = request.Replication,
+                DataVersions = request.DataVersions,
+            };
+
+            if (_server.WriteSettings.IsReplication())
+            {
+                var conn = _connectionFactory.GetConnection();
+
+                try
+                {
+                    var configSettings =
+                        JsonConvert.DeserializeObject<ConfigureReplicationFormData>(request.Replication.SettingsJson);
+
+                    _replicationConfig = configSettings;
+
+                    await conn.OpenAsync();
+
+                    var createTableStmt = $"create table \"{configSettings.TableName}\" ( id varchar(100), ";
+
+                    foreach (var prop in request.Schema.Properties)
+                    {
+                        createTableStmt += $"\"{prop.Name}\" varchar2(500) NULL,";
+                    }
+
+                    createTableStmt +=" primary key (id))";
+
+                    var cmd = _connectionFactory.GetCommand(createTableStmt, conn);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Info("Could not create table: " + ex.Message);
+                }
+                finally
+                {
+                    await conn.CloseAsync();
+                }
+            }
+
+            Logger.Debug(JsonConvert.SerializeObject(_server.WriteSettings, Formatting.Indented));
+            Logger.Info("Write prepared.");
+            _server.WriteConfigured = true;
             return new PrepareWriteResponse();
         }
 
@@ -324,45 +353,76 @@ namespace PluginOracleADW.Plugin
         public override async Task WriteStream(IAsyncStreamReader<Record> requestStream,
             IServerStreamWriter<RecordAck> responseStream, ServerCallContext context)
         {
-            // try
-            // {
-            //     Logger.Info("Writing records to MySQL...");
-            //
-            //     var schema = _server.WriteSettings.Schema;
-            //     var inCount = 0;
-            //     var config =
-            //         JsonConvert.DeserializeObject<ConfigureReplicationFormData>(_server.WriteSettings.Replication
-            //             .SettingsJson);
-            //
-            //     // get next record to publish while connected and configured
-            //     while (await requestStream.MoveNext(context.CancellationToken) && _server.Connected &&
-            //            _server.WriteConfigured)
-            //     {
-            //         var record = requestStream.Current;
-            //         inCount++;
-            //
-            //         Logger.Debug($"Got record: {record.DataJson}");
-            //
-            //         if (_server.WriteSettings.IsReplication())
-            //         {
-            //             
-            //             // send record to source system
-            //             // timeout if it takes longer than the sla
-            //             Task.Run(async () => await Replication.WriteRecord(_connectionFactory, schema, record, config, responseStream), context.CancellationToken);
-            //         }
-            //         else
-            //         {
-            //             throw new Exception("Only replication writebacks are supported");
-            //         }
-            //     }
-            //
-            //     Logger.Info($"Wrote {inCount} records to MySQL.");
-            // }
-            // catch (Exception e)
-            // {
-            //     Logger.Error(e.Message);
-            //     throw;
-            // }
+             try
+             {
+                 Logger.Info("Writing records to MySQL...");
+            
+                 var schema = _server.WriteSettings.Schema;
+                 var inCount = 0;
+                 var config =
+                     JsonConvert.DeserializeObject<ConfigureReplicationFormData>(_server.WriteSettings.Replication
+                         .SettingsJson);
+                 
+                 var conn = _connectionFactory.GetConnection();
+                 await conn.OpenAsync();
+            
+                 // get next record to publish while connected and configured
+                 while (await requestStream.MoveNext(context.CancellationToken) && _server.Connected &&
+                        _server.WriteConfigured)
+                 {
+                     var record = requestStream.Current;
+                     inCount++;
+            
+                     Logger.Debug($"Got record: {record.DataJson}");
+                     
+                     if (_server.WriteSettings.IsReplication())
+                     {
+                         var json = JObject.Parse(record.DataJson);
+                         var data = new Dictionary<string, object>();
+
+                         var upsStmt = $"INSERT INTO \"{_replicationConfig.TableName}\" VALUES ( '{record.RecordId}', ";
+                         
+                         foreach (var prop in schema.Properties)
+                         {
+                             if (json.ContainsKey(prop.Id) && json[prop.Id] != null)
+                             {
+                                 upsStmt += $"'{json[prop.Id].ToString()}'";
+                             }
+                             else
+                             {
+                                 upsStmt += "null";
+                             }
+
+                             upsStmt += ",";
+                         }
+
+                         upsStmt = upsStmt.Substring(0, upsStmt.Length - 1) + ")";
+
+                         try
+                         {
+                             var cmd = _connectionFactory.GetCommand(upsStmt, conn);
+                             await cmd.ExecuteNonQueryAsync();
+                         }
+                         catch
+                         {
+                             
+                         }
+
+                         await responseStream.WriteAsync(new RecordAck {CorrelationId = record.CorrelationId});
+                     }
+                     else
+                     {
+                         throw new Exception("Only replication writebacks are supported");
+                     }
+                 }
+            
+                 Logger.Info($"Wrote {inCount} records to MySQL.");
+             }
+             catch (Exception e)
+             {
+                 Logger.Error(e.Message);
+                 throw;
+             }
         }
 
         /// <summary>

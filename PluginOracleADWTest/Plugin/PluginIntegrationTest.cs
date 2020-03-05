@@ -17,7 +17,7 @@ namespace PluginOracleADWTest.Plugin
         {
             return new Settings
             {
-                WalletPath = "",
+                WalletPath = @"",
                 Username = "",
                 Password = "",
                 TNSName = ""
@@ -464,6 +464,171 @@ namespace PluginOracleADWTest.Plugin
 
             // assert
             Assert.Equal(10, records.Count);
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+        
+        [Fact]
+        public async Task PrepareWriteTest()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginOracleADW.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+            
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var connectRequest = GetConnectSettings();
+
+            var schema = GetTestSchema();
+            schema.Properties.Add(new Property { Id = "Prop1", Name = "FirstName", Type = PropertyType.String });
+            schema.Properties.Add(new Property { Id = "Prop2", Name = "LastName", Type = PropertyType.String });
+
+            var request = new PrepareWriteRequest()
+            {
+                Schema = schema,
+                CommitSlaSeconds = 1,
+                Replication = new ReplicationWriteRequest
+                {
+                    SettingsJson = JsonConvert.SerializeObject(new ConfigureReplicationFormData
+                    {
+                        TableName = "CUSTOMERSTEST"
+                    })
+                },
+                DataVersions = new DataVersions
+                {
+                    JobId = "jobUnitTest",
+                    ShapeId = "shapeUnitTest",
+                    JobDataVersion = 1,
+                    ShapeDataVersion = 1
+                }
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var response = client.PrepareWrite(request);
+
+            // assert
+            Assert.IsType<PrepareWriteResponse>(response);
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+        
+        [Fact]
+        public async Task WriteStreamTest()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginOracleADW.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var connectRequest = GetConnectSettings();
+            
+            var schema = GetTestSchema();
+            schema.Properties.Add(new Property { Id = "Prop1", Name = "FirstName", Type = PropertyType.String });
+            schema.Properties.Add(new Property { Id = "Prop2", Name = "LastName", Type = PropertyType.String });
+
+
+            var prepareWriteRequest = new PrepareWriteRequest()
+            {
+                Schema = schema,
+                CommitSlaSeconds = 1000,
+                Replication = new ReplicationWriteRequest
+                {
+                    SettingsJson = JsonConvert.SerializeObject(new ConfigureReplicationFormData
+                    {
+                        TableName = "CUSTOMERSTEST"
+                    })
+                },
+                DataVersions = new DataVersions
+                {
+                    JobId = "jobUnitTest",
+                    ShapeId = "shapeUnitTest",
+                    JobDataVersion = 1,
+                    ShapeDataVersion = 1
+                }
+            };
+
+            var records = new List<Record>()
+            {
+                {
+                    new Record
+                    {
+                        Action = Record.Types.Action.Upsert,
+                        CorrelationId = "test",
+                        RecordId = "record1",
+                        DataJson = "{\"Prop1\":\"Jane\",\"Prop2\":\"Doe\"}",
+                        Versions = { new RecordVersion
+                        {
+                            RecordId = "version1",
+                            DataJson = "{\"Prop1\":\"Jane\",\"Prop2\":\"Doe\"}",
+                        }}
+                    }
+                },
+                {
+                    new Record
+                    {
+                        Action = Record.Types.Action.Upsert,
+                        CorrelationId = "test",
+                        RecordId = "record2",
+                        DataJson = "{\"Prop1\":\"John\",\"Prop2\":\"Doe\"}",
+                        Versions = { new RecordVersion
+                        {
+                            RecordId = "version1",
+                            DataJson = "{\"Prop1\":\"John\",\"Prop2\":\"Doe\"}",
+                        }}
+                    }
+                }
+            };
+
+            var recordAcks = new List<RecordAck>();
+
+            // act
+            client.Connect(connectRequest);
+            client.PrepareWrite(prepareWriteRequest);
+
+            using (var call = client.WriteStream())
+            {
+                var responseReaderTask = Task.Run(async () =>
+                {
+                    while (await call.ResponseStream.MoveNext())
+                    {
+                        var ack = call.ResponseStream.Current;
+                        recordAcks.Add(ack);
+                    }
+                });
+
+                foreach (Record record in records)
+                {
+                    await call.RequestStream.WriteAsync(record);
+                }
+
+                await call.RequestStream.CompleteAsync();
+                await responseReaderTask;
+            }
+
+            // assert
+            Assert.True(recordAcks.Count() == 2);
+            Assert.Equal("", recordAcks[0].Error);
+            Assert.Equal("test", recordAcks[0].CorrelationId);
 
             // cleanup
             await channel.ShutdownAsync();

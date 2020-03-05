@@ -236,10 +236,21 @@ namespace PluginOracleADW.Plugin
         public override Task<ConfigureReplicationResponse> ConfigureReplication(ConfigureReplicationRequest request,
             ServerCallContext context)
         {
-            //Logger.Info("Configuring write...");
+            Logger.Info("Configuring write...");
             //
-            // var schemaJson = Replication.GetSchemaJson();
-            // var uiJson = Replication.GetUIJson();
+             var schemaJson = GetSchemaJson();
+             var uiJson = GetUIJson();
+             
+             return Task.FromResult(new ConfigureReplicationResponse
+              {
+                  Form = new ConfigurationFormResponse
+                  {
+                      DataJson = request.Form.DataJson,
+                      SchemaJson = schemaJson,
+                      UiJson = uiJson,
+                      StateJson = request.Form.StateJson
+                  }
+             });
             //
             // try
             // {
@@ -446,6 +457,46 @@ namespace PluginOracleADW.Plugin
 
             Logger.Info("Disconnected");
             return Task.FromResult(new DisconnectResponse());
+        }
+        
+        public static string GetSchemaJson()
+        {
+            var schemaJsonObj = new Dictionary<string, object>
+            {
+                {"type", "object"},
+                {"properties", new Dictionary<string, object>
+                {
+                    {"TableName", new Dictionary<string, string>
+                    {
+                        {"type", "string"},
+                        {"title", "Table Name"},
+                        {"description", "Name for your golden record table"},
+                    }}
+                }},
+                {"required", new []
+                {
+                    "TableName"
+                }}
+            };
+
+//            var schemaJsonObj = new Dictionary<string, object>();
+
+            return JsonConvert.SerializeObject(schemaJsonObj);
+        }
+        
+        public static string GetUIJson()
+        {
+            var uiJsonObj = new Dictionary<string, object>
+            {
+                {"ui:order", new []
+                {
+                    "TableName"
+                }}
+            };
+
+//            var uiJsonObj = new Dictionary<string, object>();
+
+            return JsonConvert.SerializeObject(uiJsonObj);
         }
     }
 }

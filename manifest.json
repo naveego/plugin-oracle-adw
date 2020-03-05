@@ -4,7 +4,7 @@
   "description": "Publisher which connects to Oracle's Autonomous Data Warehouse",
   "apiVersion": "2",
   "versionDescription": "Version 2",
-  "version": "1.0.0",
+  "version": "0.7.1",
   "iconFile": "icon.png",
   "executable": "PluginOracleADW",
   "kind": "publisher",

@@ -7,7 +7,6 @@ namespace PluginOracleADW.API.Factory
     {
         void Initialize(Settings settings);
         IConnection GetConnection();
-        IConnection GetConnection(string database);
         ICommand GetCommand(string commandText, IConnection conn);
     }
 }

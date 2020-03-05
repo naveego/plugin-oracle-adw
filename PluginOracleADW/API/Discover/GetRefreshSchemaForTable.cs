@@ -8,32 +8,13 @@ namespace PluginOracleADW.API.Discover
 {
     public static partial class Discover
     {
-        private const string GetTableAndColumnsQuery = @"
-SELECT t.TABLE_NAME
-     , t.TABLE_SCHEMA
-     , t.TABLE_TYPE
-     , c.COLUMN_NAME
-     , c.DATA_TYPE
-     , c.COLUMN_KEY
-     , c.IS_NULLABLE
-     , c.CHARACTER_MAXIMUM_LENGTH
-
-FROM INFORMATION_SCHEMA.TABLES AS t
-      INNER JOIN INFORMATION_SCHEMA.COLUMNS AS c ON c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME
-
-WHERE t.TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')
-AND t.TABLE_SCHEMA = '{0}'
-AND t.TABLE_NAME = '{1}' 
-
-ORDER BY t.TABLE_NAME";
+        private const string GetTableAndColumnsQuery = @"";
 
         public static async Task<Schema> GetRefreshSchemaForTable(IConnectionFactory connFactory, Schema schema,
             int sampleSize = 5)
         {
             var decomposed = DecomposeSafeName(schema.Id).TrimEscape();
-            var conn = string.IsNullOrWhiteSpace(decomposed.Database)
-                ? connFactory.GetConnection()
-                : connFactory.GetConnection(decomposed.Database);
+            var conn = connFactory.GetConnection();
 
             await conn.OpenAsync();
 

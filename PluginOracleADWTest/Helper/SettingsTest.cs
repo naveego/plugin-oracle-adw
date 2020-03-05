@@ -13,11 +13,8 @@ namespace PluginOracleADWTest.Helper
             // setup
             var settings = new Settings
             {
-                Hostname = "123.456.789.0",
-                Port = "3306",
-                Database = "testdb",
-                Username = "username",
-                Password = "password"
+                WalletPath = "/Users/derek/Downloads/Wallet_NaveegoAW",
+                TNSName = "NaveegoAW_MEDIUM"
             };
 
             // act
@@ -27,80 +24,40 @@ namespace PluginOracleADWTest.Helper
         }
 
         [Fact]
-        public void ValidateNoHostNameTest()
+        public void ValidateNoTNSNameTest()
         {
             // setup
             var settings = new Settings
             {
-                Hostname = null,
-                Database = "testdb",
-                Username = "username",
-                Password = "password"
+                WalletPath = "/home/user/wallet",
+                TNSName = null
             };
 
             // act
             Exception e = Assert.Throws<Exception>(() => settings.Validate());
 
             // assert
-            Assert.Contains("The Hostname property must be set", e.Message);
+            Assert.Contains("The TNSName property must be set", e.Message);
         }
         
         [Fact]
-        public void ValidateNoDatabaseTest()
+        public void ValidateNoWalletPathTest()
         {
             // setup
             var settings = new Settings
             {
-                Hostname = "123.456.789.0",
-                Database = null,
-                Username = "username",
-                Password = "password"
+                WalletPath = null,
+                TNSName = "Naveego"
             };
 
             // act
             Exception e = Assert.Throws<Exception>(() => settings.Validate());
 
             // assert
-            Assert.Contains("The Database property must be set", e.Message);
+            Assert.Contains("The WalletPath property must be set", e.Message);
         }
+
         
-        [Fact]
-        public void ValidateNoUsernameTest()
-        {
-            // setup
-            var settings = new Settings
-            {
-                Hostname = "123.456.789.0",
-                Database = "testdb",
-                Username = null,
-                Password = "password"
-            };
-
-            // act
-            Exception e = Assert.Throws<Exception>(() => settings.Validate());
-
-            // assert
-            Assert.Contains("The Username property must be set", e.Message);
-        }
-        
-        [Fact]
-        public void ValidateNoPasswordTest()
-        {
-            // setup
-            var settings = new Settings
-            {
-                Hostname = "123.456.789.0",
-                Database = "testdb",
-                Username = "username",
-                Password = null
-            };
-
-            // act
-            Exception e = Assert.Throws<Exception>(() => settings.Validate());
-
-            // assert
-            Assert.Contains("The Password property must be set", e.Message);
-        }
         
         [Fact]
         public void GetConnectionStringTest()
@@ -108,20 +65,15 @@ namespace PluginOracleADWTest.Helper
             // setup
             var settings = new Settings
             {
-                Hostname = "123.456.789.0",
-                Port = "3306",
-                Database = "testdb",
-                Username = "username",
-                Password = "password"
+                WalletPath = "/home/user/wallet",
+                TNSName = "testtns"
             };
 
             // act
             var connString = settings.GetConnectionString();
-            var connDbString = settings.GetConnectionString("otherdb");
 
             // assert
-            Assert.Equal("Server=123.456.789.0; Port=3306; Database=testdb; User=username; Password=password;", connString);
-            Assert.Equal("Server=123.456.789.0; Port=3306; Database=otherdb; User=username; Password=password;", connDbString);
+            Assert.Equal("testtns", connString);
         }
     }
 }

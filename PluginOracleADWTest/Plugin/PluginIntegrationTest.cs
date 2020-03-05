@@ -17,10 +17,10 @@ namespace PluginOracleADWTest.Plugin
         {
             return new Settings
             {
-                Hostname = "150.136.152.223",
-                Database = "classicmodels",
-                Username = "root",
-                Password = "dtC5&CFiQ$9j"
+                WalletPath = "",
+                Username = "",
+                Password = "",
+                TNSName = ""
             };
         }
 

@@ -13,11 +13,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="API\Replication" />
-      <Folder Include="API\Write" />
-    </ItemGroup>
-
-    <ItemGroup>
         <RuntimeHostConfigurationOption Include="System.Globalization.Invariant" Value="true" />
     </ItemGroup>
 
@@ -25,6 +20,10 @@
         <Icon Include="$(MSBuildProjectDirectory)/../icon.png" />
         <License Include="$(MSBuildProjectDirectory)/../LICENSE" />
         <Manifest Include="$(MSBuildProjectDirectory)/../manifest.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="sqlnet.ora" />
     </ItemGroup>
 
     <Target Name="ZipWindows" AfterTargets="Publish" Condition="$(Configuration) == 'Release' And Exists('$(MSBuildProjectDirectory)\bin\Release\netcoreapp3.1\win-x64\publish')">

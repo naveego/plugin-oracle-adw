@@ -1,10 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Google.Protobuf;
 using Grpc.Core;
-using Oracle.ManagedDataAccess.Client;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
 using PluginOracleADW.API.Discover;
@@ -72,6 +69,7 @@ namespace PluginOracleADW.Plugin
             try
             {
                 var conn =  _connectionFactory.GetConnection();
+                
                 await conn.OpenAsync();
 
                 if (!await conn.PingAsync())

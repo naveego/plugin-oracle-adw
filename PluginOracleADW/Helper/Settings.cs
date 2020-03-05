@@ -5,11 +5,13 @@ namespace PluginOracleADW.Helper
 {
     public class Settings
     {
-        public string Hostname { get; set; }
-        public string Port { get; set; }
         public string Username { get; set; }
+        
         public string Password { get; set; }
-        public string Database { get; set; }
+
+        public string WalletPath { get; set; }
+        
+        public string TNSName { get; set; }
 
         /// <summary>
         /// Validates the settings input object
@@ -17,24 +19,9 @@ namespace PluginOracleADW.Helper
         /// <exception cref="Exception"></exception>
         public void Validate()
         {
-            if (String.IsNullOrEmpty(Hostname))
+            if (String.IsNullOrEmpty(TNSName))
             {
-                throw new Exception("The Hostname property must be set");
-            }
-            
-            if (String.IsNullOrEmpty(Database))
-            {
-                throw new Exception("The Database property must be set");
-            }
-
-            if (String.IsNullOrEmpty(Username))
-            {
-                throw new Exception("The Username property must be set");
-            }
-            
-            if (String.IsNullOrEmpty(Password))
-            {
-                throw new Exception("The Password property must be set");
+                throw new Exception("The TNSName property must be set");
             }
         }
 
@@ -44,16 +31,16 @@ namespace PluginOracleADW.Helper
         /// <returns></returns>
         public string GetConnectionString()
         {
-            return $"Server={Hostname}; Port={Port}; Database={Database}; User={Username}; Password={Password};";
+            return $"User Id={Username};Password={Password};Data Source={TNSName};Pooling=false";
         }
         
         /// <summary>
         /// Gets the database connection string
         /// </summary>
         /// <returns></returns>
-        public string GetConnectionString(string database)
-        {
-            return $"Server={Hostname}; Port={Port}; Database={database}; User={Username}; Password={Password};";
-        }
+        //public string GetConnectionString(string database)
+        //{
+            //return $"${TNSName}";
+        //}
     }
 }

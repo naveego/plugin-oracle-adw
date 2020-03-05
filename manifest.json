@@ -11,7 +11,7 @@
   "os": "$GOOS",
   "arch": "$GOARCH",
   "canProduceMultipleSchemas": true,
-  "canAcceptQueryBasedSchemas": false,
+  "canAcceptQueryBasedSchemas": true,
   "canUseOAuth": false,
   "canWrite": false,
   "canConfigureReplication": true,
@@ -30,9 +30,8 @@
   "configSchema": {
     "ui": {
       "ui:order": [
-        "Hostname",
-        "Port",
-        "Database",
+        "WalletPath",
+        "TNSName",
         "Username",
         "Password"
       ],
@@ -43,15 +42,15 @@
     "schema": {
       "type": "object",
       "properties": {
-        "Hostname" : {
+        "WalletPath" : {
           "type": "string",
-          "title": "Hostname",
-          "description": "The hostname of the MySQL Server"
+          "title": "Wallet Path",
+          "description": "The file path to the Oracle Wallet"
         },
-        "Port": {
+        "TNSName": {
           "type": "string",
-          "title": "Port",
-          "description": "The port of the MySQL Server"
+          "title": "Service Name",
+          "description": "The name of the TNS service for connection"
         },
         "Username": {
           "type": "string",
@@ -62,18 +61,13 @@
           "type": "string",
           "title": "Password",
           "description": "The password to use for authentication"
-        },
-        "Database": {
-          "type": "string",
-          "title": "Database",
-          "description": "The Database within the MySQL Server"
         }
       },
       "required": [
-        "Hostname",
+        "WalletPath",
         "Username",
         "Password",
-        "Database"
+        "TNSName"
       ]
     }
   }

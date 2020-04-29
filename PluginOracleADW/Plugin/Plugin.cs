@@ -32,7 +32,7 @@ namespace PluginOracleADW.Plugin
         }
 
         /// <summary>
-        /// Establishes a connection with MySQL.
+        /// Establishes a connection with ADW.
         /// </summary>
         /// <param name="request"></param>
         /// <param name="context"></param>
@@ -228,7 +228,7 @@ namespace PluginOracleADW.Plugin
         }
 
         /// <summary>
-        /// Configures replication writebacks to MySQL
+        /// Configures replication writebacks to ADW
         /// </summary>
         /// <param name="request"></param>
         /// <param name="context"></param>
@@ -295,7 +295,7 @@ namespace PluginOracleADW.Plugin
         }
 
         /// <summary>
-        /// Prepares writeback settings to write to MySQL
+        /// Prepares writeback settings to write to ADW
         /// </summary>
         /// <param name="request"></param>
         /// <param name="context"></param>
@@ -355,7 +355,7 @@ namespace PluginOracleADW.Plugin
         }
 
         /// <summary>
-        /// Writes records to MySQL
+        /// Writes records to ADW
         /// </summary>
         /// <param name="requestStream"></param>
         /// <param name="responseStream"></param>
@@ -366,7 +366,7 @@ namespace PluginOracleADW.Plugin
         {
              try
              {
-                 Logger.Info("Writing records to MySQL...");
+                 Logger.Info("Writing records to ADW...");
             
                  var schema = _server.WriteSettings.Schema;
                  var inCount = 0;
@@ -427,7 +427,7 @@ namespace PluginOracleADW.Plugin
                      }
                  }
             
-                 Logger.Info($"Wrote {inCount} records to MySQL.");
+                 Logger.Info($"Wrote {inCount} records to ADW.");
              }
              catch (Exception e)
              {

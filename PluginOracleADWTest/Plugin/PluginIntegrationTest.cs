@@ -17,10 +17,10 @@ namespace PluginOracleADWTest.Plugin
         {
             return new Settings
             {
-                WalletPath = @"",
-                Username = "",
-                Password = "",
-                TNSName = ""
+                WalletPath = @"/home/wyatt/Downloads/adw_wallet",
+                Username = "admin",
+                Password = "@yg3Qe%%qWKm",
+                TNSName = "datawarehouse_high"
             };
         }
 
@@ -146,20 +146,20 @@ namespace PluginOracleADWTest.Plugin
 
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
-            Assert.Equal(8, response.Schemas.Count);
+            Assert.Equal(16, response.Schemas.Count);
 
             var schema = response.Schemas[0];
-            Assert.Equal($"`classicmodels`.`customers`", schema.Id);
-            Assert.Equal("classicmodels.customers", schema.Name);
+            Assert.Equal($"\"SH\".\"CHANNELS\"", schema.Id);
+            Assert.Equal("SH.CHANNELS", schema.Name);
             Assert.Equal($"", schema.Query);
-            Assert.Equal(10, schema.Sample.Count);
-            Assert.Equal(13, schema.Properties.Count);
+            Assert.Equal(5, schema.Sample.Count);
+            Assert.Equal(6, schema.Properties.Count);
 
-            var property = schema.Properties[7];
-            Assert.Equal("`customerNumber`", property.Id);
-            Assert.Equal("customerNumber", property.Name);
+            var property = schema.Properties[0];
+            Assert.Equal("\"CHANNEL_ID\"", property.Id);
+            Assert.Equal("CHANNEL_ID", property.Name);
             Assert.Equal("", property.Description);
-            Assert.Equal(PropertyType.Integer, property.Type);
+            Assert.Equal(PropertyType.Decimal, property.Type);
             Assert.True(property.IsKey);
             Assert.False(property.IsNullable);
 
@@ -190,7 +190,7 @@ namespace PluginOracleADWTest.Plugin
             {
                 Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
                 SampleSize = 10,
-                ToRefresh = {GetTestSchema("`classicmodels`.`customers`", "classicmodels.customers")}
+                ToRefresh = {GetTestSchema("\"SH\".\"CHANNELS\"", "SH.CHANNELS")}
             };
 
             // act
@@ -202,17 +202,17 @@ namespace PluginOracleADWTest.Plugin
             Assert.Single(response.Schemas);
 
             var schema = response.Schemas[0];
-            Assert.Equal($"`classicmodels`.`customers`", schema.Id);
-            Assert.Equal("classicmodels.customers", schema.Name);
+            Assert.Equal($"\"SH\".\"CHANNELS\"", schema.Id);
+            Assert.Equal("SH.CHANNELS", schema.Name);
             Assert.Equal($"", schema.Query);
-            Assert.Equal(10, schema.Sample.Count);
-            Assert.Equal(13, schema.Properties.Count);
+            Assert.Equal(5, schema.Sample.Count);
+            Assert.Equal(6, schema.Properties.Count);
 
             var property = schema.Properties[0];
-            Assert.Equal("`customerNumber`", property.Id);
-            Assert.Equal("customerNumber", property.Name);
+            Assert.Equal("\"CHANNEL_ID\"", property.Id);
+            Assert.Equal("CHANNEL_ID", property.Name);
             Assert.Equal("", property.Description);
-            Assert.Equal(PropertyType.Integer, property.Type);
+            Assert.Equal(PropertyType.Decimal, property.Type);
             Assert.True(property.IsKey);
             Assert.False(property.IsNullable);
 
@@ -243,7 +243,7 @@ namespace PluginOracleADWTest.Plugin
             {
                 Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
                 SampleSize = 10,
-                ToRefresh = {GetTestSchema("test", "test", $"SELECT * FROM `classicmodels`.`customers`")}
+                ToRefresh = {GetTestSchema("test", "test", $"SELECT * FROM \"SH\".\"CHANNELS\"")}
             };
 
             // act
@@ -257,16 +257,16 @@ namespace PluginOracleADWTest.Plugin
             var schema = response.Schemas[0];
             Assert.Equal($"test", schema.Id);
             Assert.Equal("test", schema.Name);
-            Assert.Equal($"SELECT * FROM `classicmodels`.`customers`", schema.Query);
-            Assert.Equal(10, schema.Sample.Count);
-            Assert.Equal(13, schema.Properties.Count);
+            Assert.Equal($"SELECT * FROM \"SH\".\"CHANNELS\"", schema.Query);
+            Assert.Equal(5, schema.Sample.Count);
+            Assert.Equal(6, schema.Properties.Count);
 
             var property = schema.Properties[0];
-            Assert.Equal("`customerNumber`", property.Id);
-            Assert.Equal("customerNumber", property.Name);
+            Assert.Equal("\"CHANNEL_ID\"", property.Id);
+            Assert.Equal("CHANNEL_ID", property.Name);
             Assert.Equal("", property.Description);
-            Assert.Equal(PropertyType.Integer, property.Type);
-            Assert.True(property.IsKey);
+            Assert.Equal(PropertyType.Decimal, property.Type);
+            Assert.False(property.IsKey);
             Assert.False(property.IsNullable);
 
             // cleanup
@@ -290,7 +290,7 @@ namespace PluginOracleADWTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("`classicmodels`.`customers`", "classicmodels.customers");
+            var schema = GetTestSchema("\"SH\".\"CHANNELS\"", "\"SH\".\"CHANNELS\"");
             
             var connectRequest = GetConnectSettings();
 
@@ -324,22 +324,15 @@ namespace PluginOracleADWTest.Plugin
             }
 
             // assert
-            Assert.Equal(122, records.Count);
+            Assert.Equal(5, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
-            Assert.Equal((long)103, record["`customerNumber`"]);
-            Assert.Equal("Atelier graphique", record["`customerName`"]);
-            Assert.Equal("Schmitt", record["`contactLastName`"]);
-            Assert.Equal("Carine", record["`contactFirstName`"]);
-            Assert.Equal("40.32.2555", record["`phone`"]);
-            Assert.Equal("54, rue Royale", record["`addressLine1`"]);
-            Assert.Equal("", record["`addressLine2`"]);
-            Assert.Equal("Nantes", record["`city`"]);
-            Assert.Equal("", record["`state`"]);
-            Assert.Equal("44000", record["`postalCode`"]);
-            Assert.Equal("France", record["`country`"]);
-            Assert.Equal((long)1370, record["`salesRepEmployeeNumber`"]);
-            Assert.Equal("21000.00", record["`creditLimit`"]);
+            Assert.Equal("3", record["\"CHANNEL_ID\""]);
+            Assert.Equal("Direct Sales", record["\"CHANNEL_DESC\""]);
+            Assert.Equal("Direct", record["\"CHANNEL_CLASS\""]);
+            Assert.Equal("12", record["\"CHANNEL_CLASS_ID\""]);
+            Assert.Equal("Channel total", record["\"CHANNEL_TOTAL\""]);
+            Assert.Equal("1", record["\"CHANNEL_TOTAL_ID\""]);
             
             // cleanup
             await channel.ShutdownAsync();
@@ -362,7 +355,7 @@ namespace PluginOracleADWTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("test", "test", $"SELECT * FROM `classicmodels`.`orders`");
+            var schema = GetTestSchema("test", "test", $"SELECT * FROM \"SH\".\"CHANNELS\"");
             
             var connectRequest = GetConnectSettings();
 
@@ -396,16 +389,15 @@ namespace PluginOracleADWTest.Plugin
             }
 
             // assert
-            Assert.Equal(326, records.Count);
+            Assert.Equal(5, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
-            Assert.Equal((long)10100, record["`orderNumber`"]);
-            Assert.Equal(DateTime.Parse("2003-01-06"), record["`orderDate`"]);
-            Assert.Equal(DateTime.Parse("2003-01-13"), record["`requiredDate`"]);
-            Assert.Equal(DateTime.Parse("2003-01-10"), record["`shippedDate`"]);
-            Assert.Equal("Shipped", record["`status`"]);
-            Assert.Equal("", record["`comments`"]);
-            Assert.Equal((long)363, record["`customerNumber`"]);
+            Assert.Equal("3", record["\"CHANNEL_ID\""]);
+            Assert.Equal("Direct Sales", record["\"CHANNEL_DESC\""]);
+            Assert.Equal("Direct", record["\"CHANNEL_CLASS\""]);
+            Assert.Equal("12", record["\"CHANNEL_CLASS_ID\""]);
+            Assert.Equal("Channel total", record["\"CHANNEL_TOTAL\""]);
+            Assert.Equal("1", record["\"CHANNEL_TOTAL_ID\""]);
 
             // cleanup
             await channel.ShutdownAsync();
@@ -428,7 +420,7 @@ namespace PluginOracleADWTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("`classicmodels`.`customers`", "classicmodels.customers");
+            var schema = GetTestSchema("test", "test", $"SELECT * FROM \"SH\".\"CHANNELS\"");
             
             var connectRequest = GetConnectSettings();
 
@@ -463,7 +455,7 @@ namespace PluginOracleADWTest.Plugin
             }
 
             // assert
-            Assert.Equal(10, records.Count);
+            Assert.Equal(5, records.Count);
 
             // cleanup
             await channel.ShutdownAsync();

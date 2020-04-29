@@ -18,13 +18,20 @@ namespace PluginOracleADW.API.Discover
             var conn = connFactory.GetConnection();
             await conn.OpenAsync();
 
-            var cmd = connFactory.GetCommand($"SELECT COUNT(*) as count FROM ({query}) as q", conn);
+            var cmd = connFactory.GetCommand($"SELECT COUNT(*) count FROM ({query}) q", conn);
             var reader = await cmd.ExecuteReaderAsync();
 
             var count = -1;
             while (await reader.ReadAsync())
             {
-                count = Convert.ToInt32(reader.GetValueById("count"));
+                try
+                {
+                    count = Convert.ToInt32(reader.GetValueById("count"));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
             }
 
             await conn.CloseAsync();

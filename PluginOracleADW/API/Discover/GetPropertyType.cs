@@ -21,6 +21,8 @@ namespace PluginOracleADW.API.Discover
                     return PropertyType.Float;
                 case bool _ when type == typeof(DateTime):
                     return PropertyType.Datetime;
+                case bool _ when type == typeof(Decimal):
+                    return PropertyType.Decimal;
                 case bool _ when type == typeof(string):
                     if (Int64.Parse(row["ColumnSize"].ToString()) > 1024)
                     {

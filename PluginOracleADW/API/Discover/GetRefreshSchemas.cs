@@ -48,13 +48,13 @@ namespace PluginOracleADW.API.Discover
                         // create property
                         var property = new Property
                         {
-                            Id = Utility.Utility.GetSafeName(colName, '`'),
+                            Id = Utility.Utility.GetSafeName(colName),
                             Name = colName,
                             Description = "",
                             Type = GetPropertyType(row),
                             TypeAtSource = row["DataType"].ToString(),
-                            IsKey = Boolean.Parse(row["IsKey"].ToString()),
-                            IsNullable = Boolean.Parse(row["AllowDBNull"].ToString()),
+                            IsKey = !string.IsNullOrWhiteSpace(row["IsKey"].ToString()) && Boolean.Parse(row["IsKey"].ToString()),
+                            IsNullable = string.IsNullOrWhiteSpace(row["AllowDBNull"].ToString()) || Boolean.Parse(row["AllowDBNull"].ToString()),
                             IsCreateCounter = false,
                             IsUpdateCounter = false,
                             PublisherMetaJson = ""

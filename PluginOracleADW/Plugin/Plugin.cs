@@ -10,6 +10,8 @@ using Newtonsoft.Json.Linq;
 using PluginOracleADW.API.Discover;
 using PluginOracleADW.API.Factory;
 using PluginOracleADW.API.Read;
+using PluginOracleADW.API.Replication;
+using PluginOracleADW.DataContracts;
 using PluginOracleADW.Helper;
 
 namespace PluginOracleADW.Plugin
@@ -236,62 +238,66 @@ namespace PluginOracleADW.Plugin
         public override Task<ConfigureReplicationResponse> ConfigureReplication(ConfigureReplicationRequest request,
             ServerCallContext context)
         {
-            Logger.Info("Configuring write...");
-            //
-             var schemaJson = GetSchemaJson();
-             var uiJson = GetUIJson();
-             
-             return Task.FromResult(new ConfigureReplicationResponse
-              {
-                  Form = new ConfigurationFormResponse
-                  {
-                      DataJson = request.Form.DataJson,
-                      SchemaJson = schemaJson,
-                      UiJson = uiJson,
-                      StateJson = request.Form.StateJson
-                  }
-             });
-            //
-            // try
-            // {
-            //     var errors = new List<string>();
-            //     // if (! string.IsNullOrWhiteSpace(request.Form.DataJson))
-            //     // {
-            //     //     // check for config errors
-            //     //     var replicationFormData = JsonConvert.DeserializeObject<ConfigureReplicationFormData>(request.Form.DataJson);
-            //     //
-            //     //     errors = Replication.ValidateReplicationFormData(replicationFormData);
-            //     // }
-            //     //
-            //     return Task.FromResult(new ConfigureReplicationResponse
-            //     {
-            //         Form = new ConfigurationFormResponse
-            //         {
-            //             DataJson = request.Form.DataJson,
-            //             Errors = {errors},
-            //             SchemaJson = schemaJson,
-            //             UiJson = uiJson,
-            //             StateJson = request.Form.StateJson
-            //         }
-            //     });
-            // }
-            // catch (Exception e)
-            // {
-            //     Logger.Error(e.Message);
-            //     return Task.FromResult(new ConfigureReplicationResponse
-            //     {
-            //         Form = new ConfigurationFormResponse
-            //         {
-            //             DataJson = request.Form.DataJson,
-            //             Errors = {e.Message},
-            //             SchemaJson = schemaJson,
-            //             UiJson = uiJson,
-            //             StateJson = request.Form.StateJson
-            //         }
-            //     });
-            // }
-            
-            return Task.FromResult(new ConfigureReplicationResponse());
+            Logger.SetLogPrefix("configure_replication");
+            Logger.Info($"Configuring write for schema name {request.Schema.Name}...");
+
+            var schemaJson = Replication.GetSchemaJson();
+            var uiJson = Replication.GetUIJson();
+
+            try
+            {
+                var errors = new List<string>();
+                if (!string.IsNullOrWhiteSpace(request.Form.DataJson))
+                {
+                    // check for config errors
+                    var replicationFormData =
+                        JsonConvert.DeserializeObject<ConfigureReplicationFormData>(request.Form.DataJson);
+
+                    // replicationFormData.Owner = replicationFormData.Owner.ToLower();
+                    replicationFormData.Owner = _server.Settings.Username.ToUpper();
+
+                    errors = replicationFormData.ValidateReplicationFormData();
+                    
+                    return Task.FromResult(new ConfigureReplicationResponse
+                    {
+                        Form = new ConfigurationFormResponse
+                        {
+                            DataJson = JsonConvert.SerializeObject(replicationFormData),
+                            Errors = {errors},
+                            SchemaJson = schemaJson,
+                            UiJson = uiJson,
+                            StateJson = request.Form.StateJson
+                        }
+                    });
+                }
+
+                return Task.FromResult(new ConfigureReplicationResponse
+                {
+                    Form = new ConfigurationFormResponse
+                    {
+                        DataJson = request.Form.DataJson,
+                        Errors = {},
+                        SchemaJson = schemaJson,
+                        UiJson = uiJson,
+                        StateJson = request.Form.StateJson
+                    }
+                });
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message);
+                return Task.FromResult(new ConfigureReplicationResponse
+                {
+                    Form = new ConfigurationFormResponse
+                    {
+                        DataJson = request.Form.DataJson,
+                        Errors = {e.Message},
+                        SchemaJson = schemaJson,
+                        UiJson = uiJson,
+                        StateJson = request.Form.StateJson
+                    }
+                });
+            }
         }
 
         /// <summary>
@@ -302,9 +308,10 @@ namespace PluginOracleADW.Plugin
         /// <returns></returns>
         public override async Task<PrepareWriteResponse> PrepareWrite(PrepareWriteRequest request, ServerCallContext context)
         {
-            // Logger.SetLogPrefix(request.DataVersions.JobId);
+            Logger.SetLogPrefix(request.DataVersions.JobId);
             Logger.Info("Preparing write...");
-          
+            _server.WriteConfigured = false;
+
             _server.WriteSettings = new WriteSettings
             {
                 CommitSLA = request.CommitSlaSeconds,
@@ -315,42 +322,25 @@ namespace PluginOracleADW.Plugin
 
             if (_server.WriteSettings.IsReplication())
             {
-                var conn = _connectionFactory.GetConnection();
-
+                // reconcile job
+                Logger.Info($"Starting to reconcile Replication Job {request.DataVersions.JobId}");
                 try
                 {
-                    var configSettings =
-                        JsonConvert.DeserializeObject<ConfigureReplicationFormData>(request.Replication.SettingsJson);
-
-                    _replicationConfig = configSettings;
-
-                    await conn.OpenAsync();
-
-                    var createTableStmt = $"create table \"{configSettings.TableName}\" ( id varchar(100), ";
-
-                    foreach (var prop in request.Schema.Properties)
-                    {
-                        createTableStmt += $"\"{prop.Name}\" varchar2(500) NULL,";
-                    }
-
-                    createTableStmt +=" primary key (id))";
-
-                    var cmd = _connectionFactory.GetCommand(createTableStmt, conn);
-                    await cmd.ExecuteNonQueryAsync();
+                    await Replication.ReconcileReplicationJobAsync(_connectionFactory, request);
                 }
-                catch (Exception ex)
+                catch (Exception e)
                 {
-                    Logger.Info("Could not create table: " + ex.Message);
+                    Logger.Error(e.Message);
+                    throw;
                 }
-                finally
-                {
-                    await conn.CloseAsync();
-                }
+
+                Logger.Info($"Finished reconciling Replication Job {request.DataVersions.JobId}");
             }
+
+            _server.WriteConfigured = true;
 
             Logger.Debug(JsonConvert.SerializeObject(_server.WriteSettings, Formatting.Indented));
             Logger.Info("Write prepared.");
-            _server.WriteConfigured = true;
             return new PrepareWriteResponse();
         }
 
@@ -365,75 +355,53 @@ namespace PluginOracleADW.Plugin
             IServerStreamWriter<RecordAck> responseStream, ServerCallContext context)
         {
              try
-             {
-                 Logger.Info("Writing records to ADW...");
-            
-                 var schema = _server.WriteSettings.Schema;
-                 var inCount = 0;
-                 var config =
-                     JsonConvert.DeserializeObject<ConfigureReplicationFormData>(_server.WriteSettings.Replication
-                         .SettingsJson);
-                 
-                 var conn = _connectionFactory.GetConnection();
-                 await conn.OpenAsync();
-            
-                 // get next record to publish while connected and configured
-                 while (await requestStream.MoveNext(context.CancellationToken) && _server.Connected &&
-                        _server.WriteConfigured)
-                 {
-                     var record = requestStream.Current;
-                     inCount++;
-            
-                     Logger.Debug($"Got record: {record.DataJson}");
-                     
-                     if (_server.WriteSettings.IsReplication())
-                     {
-                         var json = JObject.Parse(record.DataJson);
-                         var data = new Dictionary<string, object>();
+            {
+                Logger.Info("Writing records to Oracle ADW...");
 
-                         var upsStmt = $"INSERT INTO \"{_replicationConfig.TableName}\" VALUES ( '{record.RecordId}', ";
-                         
-                         foreach (var prop in schema.Properties)
-                         {
-                             if (json.ContainsKey(prop.Id) && json[prop.Id] != null)
-                             {
-                                 upsStmt += $"'{json[prop.Id].ToString()}'";
-                             }
-                             else
-                             {
-                                 upsStmt += "null";
-                             }
+                var schema = _server.WriteSettings.Schema;
+                var inCount = 0;
 
-                             upsStmt += ",";
-                         }
+                // get next record to publish while connected and configured
+                while (await requestStream.MoveNext(context.CancellationToken) && _server.Connected &&
+                       _server.WriteConfigured)
+                {
+                    var record = requestStream.Current;
+                    inCount++;
 
-                         upsStmt = upsStmt.Substring(0, upsStmt.Length - 1) + ")";
+                    Logger.Debug($"Got record: {record.DataJson}");
 
-                         try
-                         {
-                             var cmd = _connectionFactory.GetCommand(upsStmt, conn);
-                             await cmd.ExecuteNonQueryAsync();
-                         }
-                         catch
-                         {
-                             
-                         }
+                    if (_server.WriteSettings.IsReplication())
+                    {
+                        var config =
+                            JsonConvert.DeserializeObject<ConfigureReplicationFormData>(_server.WriteSettings
+                                .Replication
+                                .SettingsJson);
 
-                         await responseStream.WriteAsync(new RecordAck {CorrelationId = record.CorrelationId});
-                     }
-                     else
-                     {
-                         throw new Exception("Only replication writebacks are supported");
-                     }
-                 }
-            
-                 Logger.Info($"Wrote {inCount} records to ADW.");
-             }
-             catch (Exception e)
-             {
-                 Logger.Error(e.Message);
-                 throw;
-             }
+                        // send record to source system
+                        // add await for unit testing 
+                        // removed to allow multiple to run at the same time
+                        Task.Run(
+                            async () => await Replication.WriteRecordAsync(_connectionFactory, schema, record, config,
+                                responseStream), context.CancellationToken);
+                    }
+                    else
+                    {
+                        // send record to source system
+                        // add await for unit testing 
+                        // removed to allow multiple to run at the same time
+                        // Task.Run(async () =>
+                        //         await Write.WriteRecordAsync(_connectionFactory, schema, record, responseStream),
+                        //     context.CancellationToken);
+                    }
+                }
+
+                Logger.Info($"Wrote {inCount} records to Oracle ADW.");
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message);
+                throw;
+            }
         }
 
         /// <summary>
@@ -457,46 +425,6 @@ namespace PluginOracleADW.Plugin
 
             Logger.Info("Disconnected");
             return Task.FromResult(new DisconnectResponse());
-        }
-        
-        public static string GetSchemaJson()
-        {
-            var schemaJsonObj = new Dictionary<string, object>
-            {
-                {"type", "object"},
-                {"properties", new Dictionary<string, object>
-                {
-                    {"TableName", new Dictionary<string, string>
-                    {
-                        {"type", "string"},
-                        {"title", "Table Name"},
-                        {"description", "Name for your golden record table"},
-                    }}
-                }},
-                {"required", new []
-                {
-                    "TableName"
-                }}
-            };
-
-//            var schemaJsonObj = new Dictionary<string, object>();
-
-            return JsonConvert.SerializeObject(schemaJsonObj);
-        }
-        
-        public static string GetUIJson()
-        {
-            var uiJsonObj = new Dictionary<string, object>
-            {
-                {"ui:order", new []
-                {
-                    "TableName"
-                }}
-            };
-
-//            var uiJsonObj = new Dictionary<string, object>();
-
-            return JsonConvert.SerializeObject(uiJsonObj);
         }
     }
 }

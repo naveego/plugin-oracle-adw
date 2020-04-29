@@ -181,8 +181,8 @@ ORDER BY t.TABLE_NAME";
                 case "DOUBLE":
                 case "BINARY_DOUBLE":
                     return PropertyType.Float;
-                case "decimal":
-                case "bigint":
+                case "DECIMAL":
+                case "BIGINT":
                     return PropertyType.Decimal;
                 case "BOOLEAN":
                     return PropertyType.Bool;

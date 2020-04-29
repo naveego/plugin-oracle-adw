@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
+using PluginOracleADW.DataContracts;
 using PluginOracleADW.Helper;
 using Xunit;
 using Record = Naveego.Sdk.Plugins.Record;
@@ -17,10 +18,10 @@ namespace PluginOracleADWTest.Plugin
         {
             return new Settings
             {
-                WalletPath = @"/home/wyatt/Downloads/adw_wallet",
-                Username = "admin",
-                Password = "@yg3Qe%%qWKm",
-                TNSName = "datawarehouse_high"
+                WalletPath = @"",
+                Username = "",
+                Password = "",
+                TNSName = ""
             };
         }
 
@@ -492,7 +493,9 @@ namespace PluginOracleADWTest.Plugin
                 {
                     SettingsJson = JsonConvert.SerializeObject(new ConfigureReplicationFormData
                     {
-                        TableName = "CUSTOMERSTEST"
+                        Owner = "ADMIN",
+                        GoldenTableName = "GOLDEN_TEST",
+                        VersionTableName = "VERSION_TEST"
                     })
                 },
                 DataVersions = new DataVersions
@@ -547,7 +550,9 @@ namespace PluginOracleADWTest.Plugin
                 {
                     SettingsJson = JsonConvert.SerializeObject(new ConfigureReplicationFormData
                     {
-                        TableName = "CUSTOMERSTEST"
+                        Owner = "ADMIN",
+                        GoldenTableName = "GOLDEN_TEST",
+                        VersionTableName = "VERSION_TEST"
                     })
                 },
                 DataVersions = new DataVersions

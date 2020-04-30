@@ -36,11 +36,11 @@ namespace PluginOracleADW.API.Replication
             switch (dataType)
             {
                 case PropertyType.Datetime:
-                    return "DATE";
+                    return "VARCHAR(255)";
                 case PropertyType.Date:
-                    return "DATE";
+                    return "VARCHAR(255)";
                 case PropertyType.Time:
-                    return "TIME";
+                    return "VARCHAR(255)";
                 case PropertyType.Integer:
                     return "NUMBER";
                 case PropertyType.Decimal:

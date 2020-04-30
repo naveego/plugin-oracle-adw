@@ -16,7 +16,7 @@ namespace PluginOracleADW.API.Replication
 {
     public static partial class Replication
     {
-        private static readonly SemaphoreSlim ReplicationSemaphoreSlim = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim ReplicationSemaphoreSlim = new SemaphoreSlim(10, 10);
         
         /// <summary>
         /// Adds and removes records to replication db

@@ -1,6 +1,8 @@
+using System;
 using System.Threading.Tasks;
 using PluginOracleADW.API.Factory;
 using PluginOracleADW.DataContracts;
+using PluginOracleADW.Helper;
 
 namespace PluginOracleADW.API.Replication
 {
@@ -15,18 +17,28 @@ WHERE {2} = '{3}'";
             var conn = connFactory.GetConnection();
             await conn.OpenAsync();
 
-            var cmd = connFactory.GetCommand(string.Format(DeleteRecordQuery,
-                    Utility.Utility.GetSafeName(table.SchemaName),
-                    Utility.Utility.GetSafeName(table.TableName),
-                    Utility.Utility.GetSafeName(table.Columns.Find(c => c.PrimaryKey == true).ColumnName),
-                    primaryKeyValue
-                ),
-                conn);
+            try
+            {
+                var cmd = connFactory.GetCommand(string.Format(DeleteRecordQuery,
+                        Utility.Utility.GetSafeName(table.SchemaName),
+                        Utility.Utility.GetSafeName(table.TableName),
+                        Utility.Utility.GetSafeName(table.Columns.Find(c => c.PrimaryKey).ColumnName),
+                        primaryKeyValue
+                    ),
+                    conn);
 
-            // check if table exists
-            await cmd.ExecuteNonQueryAsync();
-
-            await conn.CloseAsync();
+                // check if table exists
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message);
+                throw;
+            }
+            finally
+            {
+                await conn.CloseAsync();
+            }
         }
     }
 }

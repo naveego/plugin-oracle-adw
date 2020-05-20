@@ -37,20 +37,20 @@ WHERE {Utility.Utility.GetSafeName(Constants.ReplicationMetaDataJobId)} = '{{6}}
         {
             var conn = connFactory.GetConnection();
             await conn.OpenAsync();
-            
+
             try
             {
                 // try to insert
                 var cmd = connFactory.GetCommand(
-                    string.Format(InsertMetaDataQuery, 
+                    string.Format(InsertMetaDataQuery,
                         Utility.Utility.GetSafeName(table.SchemaName),
-                        Utility.Utility.GetSafeName(table.TableName), 
+                        Utility.Utility.GetSafeName(table.TableName),
                         metaData.Request.DataVersions.JobId,
                         JsonConvert.SerializeObject(metaData.Request),
                         metaData.ReplicatedShapeId,
                         metaData.ReplicatedShapeName,
                         metaData.Timestamp
-                        ),
+                    ),
                     conn);
 
                 await cmd.ExecuteNonQueryAsync();
@@ -61,7 +61,7 @@ WHERE {Utility.Utility.GetSafeName(Constants.ReplicationMetaDataJobId)} = '{{6}}
                 {
                     // update if it failed
                     var cmd = connFactory.GetCommand(
-                        string.Format(UpdateMetaDataQuery, 
+                        string.Format(UpdateMetaDataQuery,
                             Utility.Utility.GetSafeName(table.SchemaName),
                             Utility.Utility.GetSafeName(table.TableName),
                             JsonConvert.SerializeObject(metaData.Request),
@@ -71,7 +71,7 @@ WHERE {Utility.Utility.GetSafeName(Constants.ReplicationMetaDataJobId)} = '{{6}}
                             metaData.Request.DataVersions.JobId
                         ),
                         conn);
-                
+
                     await cmd.ExecuteNonQueryAsync();
                 }
                 catch (Exception exception)
@@ -81,8 +81,10 @@ WHERE {Utility.Utility.GetSafeName(Constants.ReplicationMetaDataJobId)} = '{{6}}
                     throw;
                 }
             }
-
-            await conn.CloseAsync();
+            finally
+            {
+                await conn.CloseAsync();
+            }
         }
     }
 }

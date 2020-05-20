@@ -19,42 +19,52 @@ WHERE {2} = '{3}'";
             var conn = connFactory.GetConnection();
             await conn.OpenAsync();
 
-            var cmd = connFactory.GetCommand(string.Format(GetRecordQuery,
-                    Utility.Utility.GetSafeName(table.SchemaName),
-                    Utility.Utility.GetSafeName(table.TableName),
-                    Utility.Utility.GetSafeName(table.Columns.Find(c => c.PrimaryKey == true).ColumnName),
-                    primaryKeyValue
-                ),
-                conn);
-            
-            var reader = await cmd.ExecuteReaderAsync();
-
-            Dictionary<string, object> recordMap = null;
-            // check if record exists
-            if (reader.HasRows())
+            try
             {
-                await reader.ReadAsync();
+                var cmd = connFactory.GetCommand(string.Format(GetRecordQuery,
+                        Utility.Utility.GetSafeName(table.SchemaName),
+                        Utility.Utility.GetSafeName(table.TableName),
+                        Utility.Utility.GetSafeName(table.Columns.Find(c => c.PrimaryKey).ColumnName),
+                        primaryKeyValue
+                    ),
+                    conn);
+            
+                var reader = await cmd.ExecuteReaderAsync();
 
-                recordMap = new Dictionary<string, object>();
-
-                foreach (var column in table.Columns)
+                Dictionary<string, object> recordMap = null;
+                // check if record exists
+                if (reader.HasRows())
                 {
-                    try
+                    await reader.ReadAsync();
+
+                    recordMap = new Dictionary<string, object>();
+
+                    foreach (var column in table.Columns)
                     {
-                        recordMap[column.ColumnName] = reader.GetValueById(column.ColumnName);
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Error($"No column with column name: {column.ColumnName}");
-                        Logger.Error(e.Message);
-                        recordMap[column.ColumnName] = null;
+                        try
+                        {
+                            recordMap[column.ColumnName] = reader.GetValueById(column.ColumnName);
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.Error($"No column with column name: {column.ColumnName}");
+                            Logger.Error(e.Message);
+                            recordMap[column.ColumnName] = null;
+                        }
                     }
                 }
+
+                return recordMap;
             }
-
-            await conn.CloseAsync();
-
-            return recordMap;
+            catch (Exception e)
+            {
+                Logger.Error(e.Message);
+                throw;
+            }
+            finally
+            {
+                await conn.CloseAsync();
+            }
         }
     }
 }

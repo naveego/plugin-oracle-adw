@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using PluginOracleADW.API.Factory;
 using PluginOracleADW.DataContracts;
+using PluginOracleADW.Helper;
 
 namespace PluginOracleADW.API.Replication
 {
@@ -18,22 +19,33 @@ WHERE {2} = '{3}'
         {
             var conn = connFactory.GetConnection();
             await conn.OpenAsync();
+
+            try
+            {
+                var cmd = connFactory.GetCommand(string.Format(RecordExistsQuery,
+                        Utility.Utility.GetSafeName(table.SchemaName),
+                        Utility.Utility.GetSafeName(table.TableName),
+                        Utility.Utility.GetSafeName(table.Columns.Find(c => c.PrimaryKey).ColumnName),
+                        primaryKeyValue
+                    ),
+                    conn);
+
+                // check if record exists
+                var reader = await cmd.ExecuteReaderAsync();
+                await reader.ReadAsync();
+                var count = (decimal) reader.GetValueById("c");
             
-            var cmd = connFactory.GetCommand(string.Format(RecordExistsQuery,
-                    Utility.Utility.GetSafeName(table.SchemaName),
-                    Utility.Utility.GetSafeName(table.TableName),
-                    Utility.Utility.GetSafeName(table.Columns.Find(c => c.PrimaryKey == true).ColumnName),
-                    primaryKeyValue
-                ),
-                conn);
-
-            // check if record exists
-            var reader = await cmd.ExecuteReaderAsync();
-            await reader.ReadAsync();
-            var count = (decimal) reader.GetValueById("c");
-            await conn.CloseAsync();
-
-            return count != 0;
+                return count != 0;
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message);
+                throw;
+            }
+            finally
+            {
+                await conn.CloseAsync();
+            }
         }
     }
 }

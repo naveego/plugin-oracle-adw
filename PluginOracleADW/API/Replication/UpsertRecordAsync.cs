@@ -114,10 +114,11 @@ namespace PluginOracleADW.API.Replication
                         primaryValue = JsonConvert.SerializeObject(primaryValue);
                     }
 
-                    querySb.Append($" WHERE {Utility.Utility.GetSafeName(primaryKey.ColumnName)}='{Utility.Utility.GetSafeString(primaryValue.ToString())}'");
+                    querySb.Append(
+                        $" WHERE {Utility.Utility.GetSafeName(primaryKey.ColumnName)}='{Utility.Utility.GetSafeString(primaryValue.ToString())}'");
 
                     var query = querySb.ToString();
-                    
+
                     Logger.Debug($"Update record query: {query}");
 
                     var cmd = connFactory.GetCommand(query, conn);
@@ -131,9 +132,15 @@ namespace PluginOracleADW.API.Replication
                     Logger.Error($"Error Update: {exception.Message}");
                     throw;
                 }
+                finally
+                {
+                    await conn.CloseAsync();
+                }
             }
-
-            await conn.CloseAsync();
+            finally
+            {
+                await conn.CloseAsync();
+            }
         }
     }
 }

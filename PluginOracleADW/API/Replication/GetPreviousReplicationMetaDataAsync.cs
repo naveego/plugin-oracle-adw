@@ -17,6 +17,9 @@ namespace PluginOracleADW.API.Replication
             string jobId,
             ReplicationTable table)
         {
+            // check if metadata exists
+            var conn = connFactory.GetConnection();
+            await conn.OpenAsync();
             try
             {
                 ReplicationMetaData replicationMetaData = null;
@@ -24,14 +27,10 @@ namespace PluginOracleADW.API.Replication
                 // ensure replication metadata table
                 await EnsureTableAsync(connFactory, table);
 
-                // check if metadata exists
-                var conn = connFactory.GetConnection();
-                await conn.OpenAsync();
-
                 var cmd = connFactory.GetCommand(
-                    string.Format(GetMetaDataQuery, 
+                    string.Format(GetMetaDataQuery,
                         Utility.Utility.GetSafeName(table.SchemaName),
-                        Utility.Utility.GetSafeName(table.TableName), 
+                        Utility.Utility.GetSafeName(table.TableName),
                         Utility.Utility.GetSafeName(Constants.ReplicationMetaDataJobId),
                         jobId),
                     conn);
@@ -50,7 +49,7 @@ namespace PluginOracleADW.API.Replication
                         .ToString();
                     var timestamp = DateTime.Parse(reader.GetValueById(Constants.ReplicationMetaDataTimestamp)
                         .ToString());
-                    
+
                     replicationMetaData = new ReplicationMetaData
                     {
                         Request = request,
@@ -60,7 +59,7 @@ namespace PluginOracleADW.API.Replication
                     };
                 }
 
-                await conn.CloseAsync();
+
 
                 return replicationMetaData;
             }
@@ -68,6 +67,10 @@ namespace PluginOracleADW.API.Replication
             {
                 Logger.Error(e.Message);
                 throw;
+            }
+            finally
+            {
+                await conn.CloseAsync();
             }
         }
     }

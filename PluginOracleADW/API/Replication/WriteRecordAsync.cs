@@ -32,6 +32,7 @@ namespace PluginOracleADW.API.Replication
             ConfigureReplicationFormData config, IServerStreamWriter<RecordAck> responseStream)
         {
             // debug
+            // Logger.SetLogLevel(Logger.LogLevel.Debug);
             Logger.Debug($"Starting timer for {record.RecordId}");
             var timer = Stopwatch.StartNew();
             

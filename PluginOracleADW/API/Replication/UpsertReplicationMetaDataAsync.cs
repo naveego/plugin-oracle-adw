@@ -76,8 +76,8 @@ WHERE {Utility.Utility.GetSafeName(Constants.ReplicationMetaDataJobId)} = '{{6}}
                 }
                 catch (Exception exception)
                 {
-                    Logger.Error($"Error Insert: {e.Message}");
-                    Logger.Error($"Error Update: {exception.Message}");
+                    Logger.Error(e, $"Error Insert: {e.Message}");
+                    Logger.Error(e, $"Error Update: {exception.Message}");
                     throw;
                 }
             }

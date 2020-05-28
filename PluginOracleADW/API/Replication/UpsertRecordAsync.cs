@@ -128,8 +128,8 @@ namespace PluginOracleADW.API.Replication
                 catch (Exception exception)
                 {
                     await conn.CloseAsync();
-                    Logger.Error($"Error Insert: {e.Message}");
-                    Logger.Error($"Error Update: {exception.Message}");
+                    Logger.Error(e, $"Error Insert: {e.Message}");
+                    Logger.Error(e, $"Error Update: {exception.Message}");
                     throw;
                 }
                 finally

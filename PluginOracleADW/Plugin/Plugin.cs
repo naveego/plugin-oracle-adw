@@ -50,7 +50,8 @@ namespace PluginOracleADW.Plugin
             }
             catch (Exception e)
             {
-                Logger.Error(e.Message);
+                Logger.Error(e, e.Message, context);
+
                 return new ConnectResponse
                 {
                     OauthStateJson = request.OauthStateJson,
@@ -67,15 +68,22 @@ namespace PluginOracleADW.Plugin
             }
             catch (Exception e)
             {
-                Logger.Error(e.Message);
-                throw;
+                Logger.Error(e, e.Message, context);
+
+                return new ConnectResponse
+                {
+                    OauthStateJson = request.OauthStateJson,
+                    ConnectionError = "",
+                    OauthError = "",
+                    SettingsError = e.Message
+                };
             }
 
             // test cluster factory
             try
             {
-                var conn =  _connectionFactory.GetConnection();
-                
+                var conn = _connectionFactory.GetConnection();
+
                 await conn.OpenAsync();
 
                 if (!await conn.PingAsync())
@@ -91,7 +99,7 @@ namespace PluginOracleADW.Plugin
             }
             catch (Exception e)
             {
-                Logger.Error(e.Message);
+                Logger.Error(e, e.Message, context);
 
                 return new ConnectResponse
                 {
@@ -103,7 +111,7 @@ namespace PluginOracleADW.Plugin
             }
 
             _server.Connected = true;
-            
+
             return new ConnectResponse
             {
                 OauthStateJson = request.OauthStateJson,
@@ -167,8 +175,8 @@ namespace PluginOracleADW.Plugin
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e.Message);
-                    throw;
+                    Logger.Error(e, e.Message, context);
+                    return new DiscoverSchemasResponse();
                 }
             }
 
@@ -188,8 +196,8 @@ namespace PluginOracleADW.Plugin
             }
             catch (Exception e)
             {
-                Logger.Error(e.Message);
-                throw;
+                Logger.Error(e, e.Message, context);
+                return new DiscoverSchemasResponse();
             }
         }
 
@@ -203,30 +211,37 @@ namespace PluginOracleADW.Plugin
         public override async Task ReadStream(ReadRequest request, IServerStreamWriter<Record> responseStream,
             ServerCallContext context)
         {
-            var schema = request.Schema;
-            var limit = request.Limit;
-            var limitFlag = request.Limit != 0;
-            var jobId = request.JobId;
-            var recordsCount = 0;
-            
-            Logger.SetLogPrefix(jobId);
-            
-            var records = Read.ReadRecords(_connectionFactory, schema);
-
-            await foreach (var record in records)
+            try
             {
-                // stop publishing if the limit flag is enabled and the limit has been reached or the server is disconnected
-                if (limitFlag && recordsCount == limit || !_server.Connected)
+                var schema = request.Schema;
+                var limit = request.Limit;
+                var limitFlag = request.Limit != 0;
+                var jobId = request.JobId;
+                var recordsCount = 0;
+
+                Logger.SetLogPrefix(jobId);
+
+                var records = Read.ReadRecords(_connectionFactory, schema);
+
+                await foreach (var record in records)
                 {
-                    break;
+                    // stop publishing if the limit flag is enabled and the limit has been reached or the server is disconnected
+                    if (limitFlag && recordsCount == limit || !_server.Connected)
+                    {
+                        break;
+                    }
+
+                    // publish record
+                    await responseStream.WriteAsync(record);
+                    recordsCount++;
                 }
-                
-                // publish record
-                await responseStream.WriteAsync(record);
-                recordsCount++;
+
+                Logger.Info($"Published {recordsCount} records");
             }
-            
-            Logger.Info($"Published {recordsCount} records");
+            catch (Exception e)
+            {
+                Logger.Error(e, e.Message, context);
+            }
         }
 
         /// <summary>
@@ -253,11 +268,10 @@ namespace PluginOracleADW.Plugin
                     var replicationFormData =
                         JsonConvert.DeserializeObject<ConfigureReplicationFormData>(request.Form.DataJson);
 
-                    // replicationFormData.Owner = replicationFormData.Owner.ToLower();
                     replicationFormData.Owner = _server.Settings.Username.ToUpper();
 
                     errors = replicationFormData.ValidateReplicationFormData();
-                    
+
                     return Task.FromResult(new ConfigureReplicationResponse
                     {
                         Form = new ConfigurationFormResponse
@@ -276,7 +290,7 @@ namespace PluginOracleADW.Plugin
                     Form = new ConfigurationFormResponse
                     {
                         DataJson = request.Form.DataJson,
-                        Errors = {},
+                        Errors = { },
                         SchemaJson = schemaJson,
                         UiJson = uiJson,
                         StateJson = request.Form.StateJson
@@ -285,7 +299,8 @@ namespace PluginOracleADW.Plugin
             }
             catch (Exception e)
             {
-                Logger.Error(e.Message);
+                Logger.Error(e, e.Message, context);
+
                 return Task.FromResult(new ConfigureReplicationResponse
                 {
                     Form = new ConfigurationFormResponse
@@ -306,7 +321,8 @@ namespace PluginOracleADW.Plugin
         /// <param name="request"></param>
         /// <param name="context"></param>
         /// <returns></returns>
-        public override async Task<PrepareWriteResponse> PrepareWrite(PrepareWriteRequest request, ServerCallContext context)
+        public override async Task<PrepareWriteResponse> PrepareWrite(PrepareWriteRequest request,
+            ServerCallContext context)
         {
             // Logger.SetLogLevel(Logger.LogLevel.Debug);
             Logger.SetLogPrefix(request.DataVersions.JobId);
@@ -331,8 +347,8 @@ namespace PluginOracleADW.Plugin
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e.Message);
-                    throw;
+                    Logger.Error(e, e.Message, context);
+                    return new PrepareWriteResponse();
                 }
 
                 Logger.Info($"Finished reconciling Replication Job {request.DataVersions.JobId}");
@@ -355,7 +371,7 @@ namespace PluginOracleADW.Plugin
         public override async Task WriteStream(IAsyncStreamReader<Record> requestStream,
             IServerStreamWriter<RecordAck> responseStream, ServerCallContext context)
         {
-             try
+            try
             {
                 Logger.Info("Writing records to Oracle ADW...");
 
@@ -400,8 +416,7 @@ namespace PluginOracleADW.Plugin
             }
             catch (Exception e)
             {
-                Logger.Error(e.Message);
-                throw;
+                Logger.Error(e, e.Message, context);
             }
         }
 

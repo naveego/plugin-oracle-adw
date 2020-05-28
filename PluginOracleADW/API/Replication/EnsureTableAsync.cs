@@ -80,7 +80,7 @@ AND TABLE_NAME = '{1}'";
             }
             catch (Exception e)
             {
-                Logger.Error(e.Message);
+                Logger.Error(e, e.Message);
                 throw;
             }
             finally

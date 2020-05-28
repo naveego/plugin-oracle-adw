@@ -135,7 +135,7 @@ namespace PluginOracleADW.API.Replication
             }
             catch (Exception e)
             {
-                Logger.Error($"Error replicating records {e.Message}");
+                Logger.Error(e, $"Error replicating records {e.Message}");
                 // send ack
                 var ack = new RecordAck
                 {
